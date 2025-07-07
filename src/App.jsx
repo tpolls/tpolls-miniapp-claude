@@ -4,10 +4,12 @@ import Welcome from './components/Welcome';
 import MainApp from './components/MainApp';
 import GettingStarted from './components/GettingStarted';
 import RoleSelection from './components/RoleSelection';
+import PollCreation from './components/PollCreation';
 import './components/Welcome.css';
 import './components/MainApp.css';
 import './components/GettingStarted.css';
 import './components/RoleSelection.css';
+import './components/PollCreation.css';
 
 function App() {
   const [tonConnectUI] = useTonConnectUI();
@@ -36,6 +38,23 @@ function App() {
   };
 
   const handleRoleSelect = (role) => {
+    if (role === 'creator') {
+      setCurrentPage('poll-creation');
+    } else {
+      setCurrentPage('welcome');
+    }
+  };
+
+  const handleBackToGettingStarted = () => {
+    setCurrentPage('getting-started');
+  };
+
+  const handleBackToRoleSelection = () => {
+    setCurrentPage('role-selection');
+  };
+
+  const handlePollCreate = (pollData) => {
+    console.log('Poll created:', pollData);
     setCurrentPage('welcome');
   };
 
@@ -50,7 +69,10 @@ function App() {
         <GettingStarted onContinue={handleContinue} />
       )}
       {currentPage === 'role-selection' && (
-        <RoleSelection onRoleSelect={handleRoleSelect} />
+        <RoleSelection onRoleSelect={handleRoleSelect} onBack={handleBackToGettingStarted} />
+      )}
+      {currentPage === 'poll-creation' && (
+        <PollCreation onPollCreate={handlePollCreate} onBack={handleBackToRoleSelection} />
       )}
       {currentPage === 'welcome' && (
         <Welcome onLogin={handleLogin} />
@@ -64,7 +86,7 @@ function App() {
 
 function AppWithProvider() {
   return (
-    <TonConnectUIProvider manifestUrl="https://tpolls-miniapp.vercel.app/tonconnect-manifest.json">
+    <TonConnectUIProvider manifestUrl="https://tpolls.vercel.app/tonconnect-manifest.json">
       <App />
     </TonConnectUIProvider>
   );

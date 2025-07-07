@@ -1,7 +1,7 @@
 {
-  "url": "https://tpolls-miniapp.vercel.app",
-  "name": "TPolls Mini-App",
-  "iconUrl": "https://tpolls-miniapp.vercel.app/icon-512.svg",
-  "termsOfUseUrl": "https://tpolls-miniapp.vercel.app/terms",
-  "privacyPolicyUrl": "https://tpolls-miniapp.vercel.app/privacy"
+  "url": "https://tpolls.vercel.app",
+  "name": "tPolls",
+  "iconUrl": "https://tpolls.vercel.app/icon-512.svg",
+  "termsOfUseUrl": "https://tpolls.vercel.app/terms",
+  "privacyPolicyUrl": "https://tpolls.vercel.app/privacy"
 }

@@ -43,7 +43,7 @@ function GettingStarted({ onContinue }) {
           className="continue-btn"
           onClick={handleContinue}
         >
-          Continue
+          Start
         </button>
       </div>
     </div>

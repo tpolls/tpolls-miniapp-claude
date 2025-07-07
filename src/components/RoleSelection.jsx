@@ -3,8 +3,9 @@ import './RoleSelection.css';
 import creatorImage from './creator_v2.png';
 import responderImage from './responder_v2.png';
 
-function RoleSelection({ onRoleSelect }) {
+function RoleSelection({ onRoleSelect, onBack }) {
   const [webApp, setWebApp] = useState(null);
+  const [selectedRole, setSelectedRole] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -19,8 +20,24 @@ function RoleSelection({ onRoleSelect }) {
     if (webApp) {
       webApp.HapticFeedback.impactOccurred('light');
     }
-    if (onRoleSelect) {
-      onRoleSelect(role);
+    setSelectedRole(role);
+  };
+
+  const handleNext = () => {
+    if (webApp) {
+      webApp.HapticFeedback.impactOccurred('light');
+    }
+    if (onRoleSelect && selectedRole) {
+      onRoleSelect(selectedRole);
+    }
+  };
+
+  const handleBack = () => {
+    if (webApp) {
+      webApp.HapticFeedback.impactOccurred('light');
+    }
+    if (onBack) {
+      onBack();
     }
   };
 
@@ -32,19 +49,32 @@ function RoleSelection({ onRoleSelect }) {
       </div>
 
       <div className="role-options">
-        <div className="role-option" onClick={() => handleRoleSelect('creator')}>
+        <div className={`role-option ${selectedRole === 'creator' ? 'selected' : ''}`} onClick={() => handleRoleSelect('creator')}>
           <div className="role-icon">
             <img src={creatorImage} alt="Creator" className="role-character-image" />
           </div>
           <h3 className="role-title">Creator</h3>
         </div>
 
-        <div className="role-option" onClick={() => handleRoleSelect('responder')}>
+        <div className={`role-option ${selectedRole === 'responder' ? 'selected' : ''}`} onClick={() => handleRoleSelect('responder')}>
           <div className="role-icon">
             <img src={responderImage} alt="Responder" className="role-character-image" />
           </div>
           <h3 className="role-title">Responder</h3>
         </div>
+      </div>
+
+      <div className="role-selection-actions">
+        <button className="back-btn" onClick={handleBack}>
+          Back
+        </button>
+        <button 
+          className={`next-btn ${!selectedRole ? 'disabled' : ''}`}
+          onClick={handleNext}
+          disabled={!selectedRole}
+        >
+          Next
+        </button>
       </div>
     </div>
   );
