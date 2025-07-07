@@ -128,6 +128,44 @@
   justify-content: center;
 }
 
+.debug-section {
+  margin-top: 40px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.action-btn.danger {
+  background: #ff3b30;
+  color: white;
+  border: 1px solid #ff3b30;
+}
+
+.action-btn.danger:hover {
+  background: #d70015;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
+}
+
+.action-btn.small {
+  padding: 12px 16px;
+  font-size: 14px;
+  max-width: 200px;
+  margin: 0 auto;
+  justify-content: center;
+  text-align: center;
+}
+
+.action-btn.small .btn-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
 @media (max-width: 480px) {
   .app-header {
     padding: 12px 15px;

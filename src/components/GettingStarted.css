@@ -5,10 +5,22 @@
   padding: 40px 24px 24px;
   background: var(--tg-theme-bg-color, #ffffff);
   text-align: center;
+  position: relative;
+}
+
+.wallet-info-top {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
 }
 
 .getting-started-header {
   margin-bottom: 60px;
+}
+
+.getting-started-page.wallet-connected .getting-started-header {
+  margin-top: 60px;
 }
 
 .app-title {
@@ -165,6 +177,46 @@
 
 .getting-started-actions {
   padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.connect-prompt {
+  font-size: 16px;
+  color: var(--tg-theme-text-color, #000);
+  margin-bottom: 20px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.connected-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(52, 199, 89, 0.1);
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(52, 199, 89, 0.3);
+}
+
+.success-icon {
+  font-size: 18px;
+}
+
+.success-message p {
+  font-size: 16px;
+  color: var(--tg-theme-text-color, #000);
+  margin: 0;
+  font-weight: 500;
 }
 
 .continue-btn {
@@ -195,6 +247,11 @@
 @media (max-width: 480px) {
   .getting-started-page {
     padding: 30px 20px 20px;
+  }
+  
+  .wallet-info-top {
+    top: 15px;
+    right: 15px;
   }
   
   .app-title {

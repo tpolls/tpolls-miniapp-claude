@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { useTonConnectUI } from '@tonconnect/ui-react';
+import WalletMenu from './WalletMenu';
+import tpollsContract from '../services/tpollsContract';
 import './PollCreation.css';
 
 function PollCreation({ onBack, onPollCreate }) {
+  const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
   const [formData, setFormData] = useState({
     question: '',
     options: ['', '']
   });
+  const [isCreating, setIsCreating] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -15,7 +22,10 @@ function PollCreation({ onBack, onPollCreate }) {
       tg.ready();
       tg.expand();
     }
-  }, []);
+    
+    // Initialize contract service
+    tpollsContract.init(tonConnectUI);
+  }, [tonConnectUI]);
 
   const handleQuestionChange = (e) => {
     setFormData({
@@ -52,15 +62,45 @@ function PollCreation({ onBack, onPollCreate }) {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (webApp) {
       webApp.HapticFeedback.impactOccurred('light');
     }
     
-    if (formData.question.trim() && formData.options.every(opt => opt.trim())) {
-      if (onPollCreate) {
-        onPollCreate(formData);
+    if (!formData.question.trim() || !formData.options.every(opt => opt.trim())) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      const pollData = {
+        title: formData.question,
+        description: 'Poll created via tPolls miniapp',
+        options: formData.options.filter(opt => opt.trim()),
+        duration: 86400, // 24 hours
+        rewardPerVote: '0.001', // 0.001 TON per vote
+        totalFunding: '0.05' // 0.05 TON total funding for testing
+      };
+
+      const result = await tpollsContract.createPoll(pollData);
+      
+      if (result.success) {
+        setToastMessage('Poll created successfully!');
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          if (onPollCreate) {
+            onPollCreate(result.pollData);
+          }
+        }, 1500); // Reduced time before redirect
       }
+    } catch (error) {
+      console.error('Error creating poll:', error);
+      alert(`Failed to create poll: ${error.message}`);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -77,6 +117,10 @@ function PollCreation({ onBack, onPollCreate }) {
 
   return (
     <div className="poll-creation-page">
+      <div className="wallet-info-top">
+        <WalletMenu />
+      </div>
+      
       <div className="poll-creation-header">
         <h1 className="page-title">Creating Polls</h1>
       </div>
@@ -136,38 +180,21 @@ function PollCreation({ onBack, onPollCreate }) {
 
             <button
               onClick={handleCreate}
-              disabled={!isFormValid}
-              className={`create-poll-btn ${!isFormValid ? 'disabled' : ''}`}
+              disabled={!isFormValid || isCreating}
+              className={`create-poll-btn ${!isFormValid || isCreating ? 'disabled' : ''} ${isCreating ? 'loading' : ''}`}
             >
-              Create
+              {isCreating ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Creating Poll...
+                </>
+              ) : (
+                'Create Poll'
+              )}
             </button>
           </div>
         </div>
 
-        <div className="poll-illustration-section">
-          <div className="poll-creation-illustration">
-            <div className="character-with-form">
-              <div className="character poll-creator">
-                <div className="character-head"></div>
-                <div className="character-body"></div>
-                <div className="character-arm"></div>
-              </div>
-              <div className="form-preview">
-                <div className="form-header"></div>
-                <div className="form-line"></div>
-                <div className="form-option">
-                  <div className="preview-radio checked"></div>
-                  <div className="preview-line"></div>
-                </div>
-                <div className="form-option">
-                  <div className="preview-radio"></div>
-                  <div className="preview-line"></div>
-                </div>
-                <div className="form-create-btn"></div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="poll-creation-actions">
@@ -175,6 +202,12 @@ function PollCreation({ onBack, onPollCreate }) {
           Back
         </button>
       </div>
+
+      {showToast && (
+        <div className="toast">
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

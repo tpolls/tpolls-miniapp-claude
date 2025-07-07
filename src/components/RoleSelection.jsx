@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import WalletMenu from './WalletMenu';
 import './RoleSelection.css';
 import creatorImage from './creator_v2.png';
 import responderImage from './responder_v2.png';
@@ -43,6 +44,10 @@ function RoleSelection({ onRoleSelect, onBack }) {
 
   return (
     <div className="role-selection-page">
+      <div className="wallet-info-top">
+        <WalletMenu />
+      </div>
+      
       <div className="role-selection-header">
         <h1 className="app-title">tPolls</h1>
         <h2 className="page-title">Choose your role</h2>
