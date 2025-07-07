@@ -5,10 +5,19 @@
   padding: 40px 24px 24px;
   background: var(--tg-theme-bg-color, #ffffff);
   text-align: center;
+  position: relative;
+}
+
+.wallet-info-top {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
 }
 
 .role-selection-header {
   margin-bottom: 60px;
+  margin-top: 60px;
 }
 
 .app-title {

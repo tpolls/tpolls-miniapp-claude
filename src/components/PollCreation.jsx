@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import WalletMenu from './WalletMenu';
 import './PollCreation.css';
 
 function PollCreation({ onBack, onPollCreate }) {
@@ -77,6 +78,10 @@ function PollCreation({ onBack, onPollCreate }) {
 
   return (
     <div className="poll-creation-page">
+      <div className="wallet-info-top">
+        <WalletMenu />
+      </div>
+      
       <div className="poll-creation-header">
         <h1 className="page-title">Creating Polls</h1>
       </div>

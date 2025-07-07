@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
+import WalletMenu from './WalletMenu';
 import './GettingStarted.css';
 import illustrationImage from './getting-started-illustration.png';
 
 function GettingStarted({ onContinue }) {
+  const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
+  const [isConnected, setIsConnected] = useState(tonConnectUI.connected);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -13,6 +17,18 @@ function GettingStarted({ onContinue }) {
       tg.expand();
     }
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = tonConnectUI.onStatusChange((walletInfo) => {
+      if (walletInfo) {
+        setIsConnected(true);
+      } else {
+        setIsConnected(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [tonConnectUI]);
 
   const handleContinue = () => {
     if (webApp) {
@@ -24,7 +40,13 @@ function GettingStarted({ onContinue }) {
   };
 
   return (
-    <div className="getting-started-page">
+    <div className={`getting-started-page ${isConnected ? 'wallet-connected' : ''}`}>
+      {isConnected && (
+        <div className="wallet-info-top">
+          <WalletMenu />
+        </div>
+      )}
+      
       <div className="getting-started-header">
         <h1 className="app-title">tPolls</h1>
         <h2 className="page-title">Get Started</h2>
@@ -39,12 +61,24 @@ function GettingStarted({ onContinue }) {
       </div>
 
       <div className="getting-started-actions">
-        <button 
-          className="continue-btn"
-          onClick={handleContinue}
-        >
-          Start
-        </button>
+        {!isConnected ? (
+          <>
+            <TonConnectButton />
+          </>
+        ) : (
+          <div className="connected-state">
+            <div className="success-message">
+              <span className="success-icon">✅</span>
+              <p>Wallet connected successfully!</p>
+            </div>
+            <button 
+              className="continue-btn"
+              onClick={handleContinue}
+            >
+              Start
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

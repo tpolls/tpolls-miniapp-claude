@@ -4,11 +4,20 @@
   flex-direction: column;
   padding: 40px 24px 24px;
   background: var(--tg-theme-bg-color, #ffffff);
+  position: relative;
+}
+
+.wallet-info-top {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
 }
 
 .poll-creation-header {
   text-align: center;
   margin-bottom: 40px;
+  margin-top: 60px;
 }
 
 .page-title {
@@ -24,11 +33,14 @@
   display: flex;
   gap: 40px;
   align-items: flex-start;
+  justify-content: center;
 }
 
 .poll-form-section {
   flex: 1;
   max-width: 400px;
+  display: flex;
+  justify-content: center;
 }
 
 .poll-form {
@@ -36,6 +48,8 @@
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
 }
 
 .form-group {
@@ -367,6 +381,12 @@
   .poll-creation-content {
     flex-direction: column;
     gap: 20px;
+    align-items: center;
+  }
+  
+  .poll-form-section {
+    width: 100%;
+    max-width: 500px;
   }
   
   .poll-illustration-section {
