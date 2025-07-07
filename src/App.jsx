@@ -46,7 +46,7 @@ function App() {
 
 function AppWithProvider() {
   return (
-    <TonConnectUIProvider manifestUrl="https://ton-connect.github.io/demo-dapp-with-react-ui/tonconnect-manifest.json">
+    <TonConnectUIProvider manifestUrl="https://tpolls-miniapp.vercel.app/tonconnect-manifest.json">
       <App />
     </TonConnectUIProvider>
   );
