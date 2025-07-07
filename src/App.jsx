@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { TonConnectUIProvider, useTonConnectUI } from '@tonconnect/ui-react';
 import Welcome from './components/Welcome';
 import MainApp from './components/MainApp';
+import GettingStarted from './components/GettingStarted';
+import RoleSelection from './components/RoleSelection';
 import './components/Welcome.css';
 import './components/MainApp.css';
+import './components/GettingStarted.css';
+import './components/RoleSelection.css';
 
 function App() {
   const [tonConnectUI] = useTonConnectUI();
-  const [currentPage, setCurrentPage] = useState('welcome');
+  const [currentPage, setCurrentPage] = useState('getting-started');
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
@@ -27,13 +31,27 @@ function App() {
     setCurrentPage('main');
   };
 
-  const handleLogout = () => {
+  const handleContinue = () => {
+    setCurrentPage('role-selection');
+  };
+
+  const handleRoleSelect = (role) => {
     setCurrentPage('welcome');
+  };
+
+  const handleLogout = () => {
+    setCurrentPage('getting-started');
     setIsConnected(false);
   };
 
   return (
     <div className="app">
+      {currentPage === 'getting-started' && (
+        <GettingStarted onContinue={handleContinue} />
+      )}
+      {currentPage === 'role-selection' && (
+        <RoleSelection onRoleSelect={handleRoleSelect} />
+      )}
       {currentPage === 'welcome' && (
         <Welcome onLogin={handleLogin} />
       )}
