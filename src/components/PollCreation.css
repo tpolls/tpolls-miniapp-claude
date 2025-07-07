@@ -31,14 +31,14 @@
 .poll-creation-content {
   flex: 1;
   display: flex;
-  gap: 40px;
-  align-items: flex-start;
   justify-content: center;
+  align-items: flex-start;
+  margin-bottom: 20px;
 }
 
 .poll-form-section {
-  flex: 1;
-  max-width: 400px;
+  width: 100%;
+  max-width: 500px;
   display: flex;
   justify-content: center;
 }
@@ -188,162 +188,29 @@
   box-shadow: none;
 }
 
-.poll-illustration-section {
-  flex: 1;
+.create-poll-btn.loading {
+  background: var(--tg-theme-button-color, #007aff);
+  cursor: wait;
+  opacity: 0.8;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 300px;
-}
-
-.poll-creation-illustration {
-  position: relative;
-  width: 280px;
-  height: 200px;
-}
-
-.character-with-form {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.character.poll-creator {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  width: 80px;
-  height: 100px;
-}
-
-.character-head {
-  width: 50px;
-  height: 50px;
-  background: #f4c2a1;
-  border-radius: 50%;
-  position: relative;
-  margin: 0 auto 5px;
-  border: 2px solid #333;
-}
-
-.character-head::before {
-  content: '';
-  position: absolute;
-  top: 15px;
-  left: 12px;
-  width: 6px;
-  height: 6px;
-  background: #333;
-  border-radius: 50%;
-}
-
-.character-head::after {
-  content: '';
-  position: absolute;
-  top: 15px;
-  right: 12px;
-  width: 6px;
-  height: 6px;
-  background: #333;
-  border-radius: 50%;
-}
-
-.character-body {
-  width: 40px;
-  height: 50px;
-  background: #87ceeb;
-  border-radius: 20px 20px 6px 6px;
-  margin: 0 auto;
-  position: relative;
-  border: 2px solid #333;
-}
-
-.character-arm {
-  position: absolute;
-  left: 5px;
-  top: 60px;
-  width: 20px;
-  height: 25px;
-  background: #f4c2a1;
-  border-radius: 10px;
-  transform: rotate(-30deg);
-  border: 2px solid #333;
-}
-
-.form-preview {
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  width: 180px;
-  height: 140px;
-  background: white;
-  border-radius: 8px;
-  border: 2px solid #333;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.form-header {
-  width: 100%;
-  height: 8px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-
-.form-line {
-  width: 80%;
-  height: 4px;
-  background: #e0e0e0;
-  border-radius: 2px;
-  margin-bottom: 16px;
-}
-
-.form-option {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
-.preview-radio {
-  width: 12px;
-  height: 12px;
-  border: 2px solid #ccc;
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  background: white;
-  position: relative;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
 }
 
-.preview-radio.checked {
-  border-color: #007aff;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-.preview-radio.checked::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 4px;
-  height: 4px;
-  background: #007aff;
-  border-radius: 50%;
-}
-
-.preview-line {
-  flex: 1;
-  height: 3px;
-  background: #e0e0e0;
-  border-radius: 2px;
-}
-
-.form-create-btn {
-  width: 60px;
-  height: 20px;
-  background: #007aff;
-  border-radius: 4px;
-  margin-top: 12px;
-}
 
 .poll-creation-actions {
   display: flex;
@@ -388,42 +255,6 @@
     width: 100%;
     max-width: 500px;
   }
-  
-  .poll-illustration-section {
-    min-height: 200px;
-  }
-  
-  .poll-creation-illustration {
-    width: 200px;
-    height: 150px;
-  }
-  
-  .form-preview {
-    width: 130px;
-    height: 100px;
-    padding: 12px;
-  }
-  
-  .character.poll-creator {
-    width: 60px;
-    height: 80px;
-  }
-  
-  .character-head {
-    width: 40px;
-    height: 40px;
-  }
-  
-  .character-body {
-    width: 30px;
-    height: 40px;
-  }
-  
-  .character-arm {
-    width: 15px;
-    height: 20px;
-    top: 50px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -438,8 +269,31 @@
   .poll-form {
     padding: 20px;
   }
-  
-  .poll-illustration-section {
-    display: none;
+}
+
+.toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #4CAF50;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: toastSlideIn 0.3s ease-out;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }

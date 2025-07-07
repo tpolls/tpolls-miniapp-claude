@@ -6,6 +6,7 @@ import GettingStarted from './components/GettingStarted';
 import RoleSelection from './components/RoleSelection';
 import PollCreation from './components/PollCreation';
 import PollSelection from './components/PollSelection';
+import PollResponse from './components/PollResponse';
 import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted } from './utils/userHistory';
 import './components/Welcome.css';
 import './components/MainApp.css';
@@ -13,6 +14,7 @@ import './components/GettingStarted.css';
 import './components/RoleSelection.css';
 import './components/PollCreation.css';
 import './components/PollSelection.css';
+import './components/PollResponse.css';
 import './components/WalletMenu.css';
 
 function App() {
@@ -20,6 +22,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('getting-started');
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
+  const [selectedPoll, setSelectedPoll] = useState(null);
 
   useEffect(() => {
     const unsubscribe = tonConnectUI.onStatusChange((walletInfo) => {
@@ -42,7 +45,7 @@ function App() {
         }
       } else {
         setWalletAddress(null);
-        setCurrentPage('welcome');
+        setCurrentPage('getting-started');
       }
     });
 
@@ -90,13 +93,23 @@ function App() {
 
   const handlePollSelect = (pollData) => {
     console.log('Poll selected:', pollData);
+    setSelectedPoll(pollData);
+    setCurrentPage('poll-response');
+  };
+
+  const handlePollResponse = (responseData) => {
+    console.log('Poll response submitted:', responseData);
     
     // Record poll response in user history
     if (walletAddress) {
-      recordPollResponse(walletAddress, pollData);
+      recordPollResponse(walletAddress, responseData);
     }
     
     setCurrentPage('main');
+  };
+
+  const handleBackToPollSelection = () => {
+    setCurrentPage('poll-selection');
   };
 
   const handleLogout = () => {
@@ -122,6 +135,9 @@ function App() {
       )}
       {currentPage === 'poll-selection' && (
         <PollSelection onPollSelect={handlePollSelect} onBack={handleBackToRoleSelection} />
+      )}
+      {currentPage === 'poll-response' && (
+        <PollResponse poll={selectedPoll} onSubmitResponse={handlePollResponse} onBack={handleBackToPollSelection} />
       )}
       {currentPage === 'welcome' && (
         <Welcome onLogin={handleLogin} />

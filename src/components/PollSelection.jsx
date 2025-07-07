@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 import WalletMenu from './WalletMenu';
+import tpollsContract from '../services/tpollsContract';
 import './PollSelection.css';
 
 // Mock data for demonstration
@@ -39,9 +41,11 @@ const mockPolls = [
 ];
 
 function PollSelection({ onBack, onPollSelect }) {
+  const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
-  const [polls, setPolls] = useState(mockPolls);
+  const [polls, setPolls] = useState([]);
   const [selectedPoll, setSelectedPoll] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -50,7 +54,25 @@ function PollSelection({ onBack, onPollSelect }) {
       tg.ready();
       tg.expand();
     }
-  }, []);
+    
+    // Initialize contract service
+    tpollsContract.init(tonConnectUI);
+    loadPolls();
+  }, [tonConnectUI]);
+
+  const loadPolls = async () => {
+    try {
+      setIsLoading(true);
+      const activePolls = await tpollsContract.getActivePolls();
+      setPolls(activePolls);
+    } catch (error) {
+      console.error('Error loading polls:', error);
+      // Fallback to mock data if contract fails
+      setPolls(mockPolls);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePollSelect = (poll) => {
     if (webApp) {
@@ -89,8 +111,14 @@ function PollSelection({ onBack, onPollSelect }) {
       </div>
 
       <div className="poll-selection-content">
-        <div className="polls-list">
-          {polls.map((poll) => (
+        {isLoading ? (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Loading polls...</p>
+          </div>
+        ) : (
+          <div className="polls-list">
+            {polls.map((poll) => (
             <div 
               key={poll.id} 
               className={`poll-card ${selectedPoll?.id === poll.id ? 'selected' : ''}`}
@@ -119,11 +147,12 @@ function PollSelection({ onBack, onPollSelect }) {
               <div className="poll-stats">
                 <span className="vote-count">{poll.totalVotes} votes</span>
               </div>
-            </div>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {polls.length === 0 && (
+        {!isLoading && polls.length === 0 && (
           <div className="no-polls">
             <div className="no-polls-icon">📊</div>
             <h3>No polls available</h3>

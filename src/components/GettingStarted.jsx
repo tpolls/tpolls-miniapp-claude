@@ -67,10 +67,6 @@ function GettingStarted({ onContinue }) {
           </>
         ) : (
           <div className="connected-state">
-            <div className="success-message">
-              <span className="success-icon">✅</span>
-              <p>Wallet connected successfully!</p>
-            </div>
             <button 
               className="continue-btn"
               onClick={handleContinue}
