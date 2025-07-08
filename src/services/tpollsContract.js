@@ -1,4 +1,5 @@
 import { toNano } from '@ton/core';
+import gaslessVotingService from './gaslessVoting';
 
 /**
  * TPolls Smart Contract Service
@@ -6,8 +7,12 @@ import { toNano } from '@ton/core';
  */
 class TPollsContract {
   constructor() {
-    this.contractAddress = 'EQDzYUsVz1PZ4mCOFHYdchV0J0Xs0Qz9DEx7nEMqGJ_OsZ30';
+    this.contractAddress = process.env.REACT_APP_TPOLLS_CONTRACT_ADDRESS || 'EQDzYUsVz1PZ4mCOFHYdchV0J0Xs0Qz9DEx7nEMqGJ_OsZ30';
     this.tonConnectUI = null;
+    
+    // Log which contract address is being used
+    const usingDefault = !process.env.REACT_APP_TPOLLS_CONTRACT_ADDRESS;
+    console.log(`TPollsContract initialized with address: ${this.contractAddress}${usingDefault ? ' (default)' : ' (from env)'}`);
   }
 
   /**
@@ -91,8 +96,9 @@ class TPollsContract {
 
       const result = await this.tonConnectUI.sendTransaction(transaction);
       
-      // Store poll options off-chain (since contract only stores count)
+      // Store poll options and gasless preference off-chain
       this._storePollOptions(title, options);
+      this._storePollGaslessPreference(title, pollData.enableGaslessResponses);
       
       return {
         success: true,
@@ -113,16 +119,84 @@ class TPollsContract {
   }
 
   /**
-   * Vote on a poll
+   * Vote on a poll with gasless option
    * @param {number} pollId - Poll ID
    * @param {number} optionId - Selected option ID (0-based index)
+   * @param {boolean} useGaslessVoting - Whether to use gasless voting (default: true)
    * @returns {Promise<Object>} Transaction result
    */
-  async voteOnPoll(pollId, optionId) {
+  async voteOnPoll(pollId, optionId, useGaslessVoting = true) {
     if (!this.tonConnectUI || !this.tonConnectUI.connected) {
       throw new Error('Wallet not connected');
     }
 
+    try {
+      // Check if the poll has gasless voting enabled
+      const poll = await this.getPoll(pollId);
+      const pollSupportsGasless = poll.gaslessEnabled;
+      
+      // Check if gasless voting is available
+      const gaslessAvailable = await gaslessVotingService.isGaslessVotingAvailable();
+      
+      // Only use gasless if user wants it, poll supports it, and service is available
+      const shouldUseGasless = useGaslessVoting && pollSupportsGasless && gaslessAvailable;
+      
+      if (shouldUseGasless) {
+        console.log('Using gasless voting (poll creator enabled this feature)...');
+        return await this.submitGaslessVote(pollId, optionId);
+      } else {
+        if (useGaslessVoting && !pollSupportsGasless) {
+          console.log('Poll creator disabled gasless voting, using traditional voting...');
+        } else {
+          console.log('Using traditional voting...');
+        }
+        return await this.submitTraditionalVote(pollId, optionId);
+      }
+    } catch (error) {
+      console.error('Error voting on poll:', error);
+      throw new Error(`Failed to vote: ${error.message}`);
+    }
+  }
+
+  /**
+   * Submit a gasless vote using meta-transactions
+   * @param {number} pollId - Poll ID
+   * @param {number} optionId - Selected option ID
+   * @returns {Promise<Object>} Vote result
+   */
+  async submitGaslessVote(pollId, optionId) {
+    try {
+      // Get user's wallet address
+      const userAddress = this.tonConnectUI.account?.address;
+      if (!userAddress) {
+        throw new Error('User address not available');
+      }
+
+      const voteData = {
+        pollId,
+        optionId,
+        userAddress
+      };
+
+      // Submit gasless vote
+      const result = await gaslessVotingService.submitGaslessVote(voteData, this.tonConnectUI);
+      
+      return result;
+    } catch (error) {
+      console.error('Error in gasless voting:', error);
+      // Fallback to traditional voting if gasless fails
+      console.log('Falling back to traditional voting...');
+      return await this.submitTraditionalVote(pollId, optionId);
+    }
+  }
+
+  /**
+   * Submit a traditional vote (user pays gas)
+   * @param {number} pollId - Poll ID
+   * @param {number} optionId - Selected option ID
+   * @returns {Promise<Object>} Vote result
+   */
+  async submitTraditionalVote(pollId, optionId) {
     try {
       // Send simple transaction for voting
       const transaction = {
@@ -130,7 +204,7 @@ class TPollsContract {
         messages: [
           {
             address: this.contractAddress,
-            amount: toNano('0.1').toString() // Gas fees
+            amount: toNano('0.05').toString() // Reduced gas fees
             // No payload for simple transfer
           }
         ]
@@ -141,12 +215,14 @@ class TPollsContract {
       return {
         success: true,
         transactionHash: result.boc,
+        gasless: false,
         pollId,
-        selectedOption: optionId
+        selectedOption: optionId,
+        message: 'Vote submitted successfully'
       };
     } catch (error) {
-      console.error('Error voting on poll:', error);
-      throw new Error(`Failed to vote: ${error.message}`);
+      console.error('Error in traditional voting:', error);
+      throw error;
     }
   }
 
@@ -167,6 +243,7 @@ class TPollsContract {
       
       // Mock poll data for demonstration
       const pollOptions = this._getPollOptions(pollId);
+      const gaslessEnabled = this._getPollGaslessPreference(pollId);
       
       return {
         id: pollId,
@@ -179,7 +256,8 @@ class TPollsContract {
         endTime: Math.floor(Date.now() / 1000) + 82800, // 23 hours from now
         isActive: true,
         totalVotes: 42,
-        rewardPerVote: '0.01'
+        rewardPerVote: '0.01',
+        gaslessEnabled: gaslessEnabled !== null ? gaslessEnabled : true // Default to gasless enabled
       };
     } catch (error) {
       console.error('Error getting poll:', error);
@@ -314,6 +392,19 @@ class TPollsContract {
   }
 
   /**
+   * Store poll gasless preference off-chain
+   */
+  _storePollGaslessPreference(title, enableGasless) {
+    try {
+      const gaslessData = JSON.parse(localStorage.getItem('tpolls_gasless') || '{}');
+      gaslessData[title] = enableGasless;
+      localStorage.setItem('tpolls_gasless', JSON.stringify(gaslessData));
+    } catch (error) {
+      console.warn('Failed to store gasless preference:', error);
+    }
+  }
+
+  /**
    * Get poll options from off-chain storage
    */
   _getPollOptions(pollId) {
@@ -325,6 +416,34 @@ class TPollsContract {
       console.warn('Failed to get poll options:', error);
       return null;
     }
+  }
+
+  /**
+   * Get poll gasless preference from off-chain storage
+   */
+  _getPollGaslessPreference(pollId) {
+    try {
+      const gaslessData = JSON.parse(localStorage.getItem('tpolls_gasless') || '{}');
+      // In real implementation, you'd map pollId to stored preferences
+      return Object.values(gaslessData)[pollId - 1] || null;
+    } catch (error) {
+      console.warn('Failed to get gasless preference:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get gasless voting information
+   * @returns {Object} Gasless voting info
+   */
+  async getGaslessVotingInfo() {
+    const isAvailable = await gaslessVotingService.isGaslessVotingAvailable();
+    const savingsInfo = gaslessVotingService.getGasSavingsInfo();
+    
+    return {
+      available: isAvailable,
+      ...savingsInfo
+    };
   }
 
   /**

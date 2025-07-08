@@ -92,7 +92,7 @@
   height: 14px;
   border: 2px solid #666;
   border-radius: 3px;
-  background: white;
+  background: var(--tg-theme-bg-color, #ffffff);
   position: relative;
 }
 

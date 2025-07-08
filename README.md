@@ -130,8 +130,19 @@ The app uses TON Connect for secure wallet integration:
 Create a `.env` file in the root directory for environment-specific configurations:
 
 ```env
-VITE_TON_CONNECT_MANIFEST_URL=your-manifest-url
+# TON Smart Contract Address (required)
+REACT_APP_TPOLLS_CONTRACT_ADDRESS=EQDzYUsVz1PZ4mCOFHYdchV0J0Xs0Qz9DEx7nEMqGJ_OsZ30
+
+# Gasless Voting Relayer Endpoint (optional)
+REACT_APP_RELAYER_ENDPOINT=http://localhost:3001/api/relay
 ```
+
+### Environment Variables Description
+
+- **`REACT_APP_TPOLLS_CONTRACT_ADDRESS`**: The address of the deployed TPollsDapp smart contract on TON blockchain. If not set, uses the default contract address.
+- **`REACT_APP_RELAYER_ENDPOINT`**: URL of the relayer service for gasless transactions. If not set, defaults to `http://localhost:3001/api/relay` for development.
+
+Copy `.env.example` to `.env` and update the values as needed for your deployment.
 
 ## Contributing
 
