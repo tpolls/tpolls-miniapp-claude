@@ -12,6 +12,7 @@ import {
   Title,
   Avatar
 } from '@telegram-apps/telegram-ui';
+import '@telegram-apps/telegram-ui/dist/styles.css';
 
 import TelegramUIFormExample from './TelegramUIFormExample';
 import TelegramUIDialogExample from './TelegramUIDialogExample';

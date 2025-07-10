@@ -1,5 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
+import {
+  AppRoot,
+  Card,
+  Cell,
+  Section,
+  List,
+  Input,
+  Textarea,
+  Button,
+  Switch,
+  Radio,
+  Checkbox,
+  Select,
+  Caption,
+  Subheadline,
+  Title,
+  LargeTitle
+} from '@telegram-apps/telegram-ui';
+import '@telegram-apps/telegram-ui/dist/styles.css';
 import WalletMenu from './WalletMenu';
 import tpollsContract from '../services/tpollsContract';
 import './PollCreation.css';
@@ -27,6 +46,8 @@ function PollCreation({ onBack, onPollCreate }) {
   const [isCreating, setIsCreating] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [useAI, setUseAI] = useState(false);
+  const [isGeneratingOptions, setIsGeneratingOptions] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -38,23 +59,73 @@ function PollCreation({ onBack, onPollCreate }) {
     
     // Initialize contract service
     tpollsContract.init(tonConnectUI);
+    
+    // Enhanced CSS injection for Telegram UI Switch theming
+    const style = document.createElement('style');
+    style.id = 'telegram-switch-theme';
+    style.textContent = `
+      /* Force Telegram UI Switch colors using inline styles and CSS vars */
+      [role="switch"] {
+        background-color: #48484a !important;
+        border: 1px solid #636366 !important;
+        --tgui-switch-bg: #48484a !important;
+        --tgui-switch-bg-checked: #0a84ff !important;
+      }
+      
+      [role="switch"][aria-checked="true"] {
+        background-color: #0a84ff !important;
+        border: 1px solid #0a84ff !important;
+      }
+      
+      /* Target switch components more specifically */
+      .ai-toggle-container [role="switch"],
+      .checkbox-label [role="switch"] {
+        background: #48484a !important;
+        border: 1px solid #636366 !important;
+      }
+      
+      .ai-toggle-container [role="switch"][aria-checked="true"],
+      .checkbox-label [role="switch"][aria-checked="true"] {
+        background: #0a84ff !important;
+        border: 1px solid #0a84ff !important;
+      }
+    `;
+    
+    // Remove existing style if it exists
+    const existingStyle = document.getElementById('telegram-switch-theme');
+    if (existingStyle) {
+      document.head.removeChild(existingStyle);
+    }
+    
+    document.head.appendChild(style);
+    
+    // Cleanup function
+    return () => {
+      const styleToRemove = document.getElementById('telegram-switch-theme');
+      if (styleToRemove) {
+        document.head.removeChild(styleToRemove);
+      }
+    };
   }, [tonConnectUI]);
 
-  const handleInputChange = (field, value) => {
-    setFormData({
-      ...formData,
+  const handleInputChange = useCallback((field, value) => {
+    setFormData(prevData => ({
+      ...prevData,
       [field]: value
-    });
-  };
+    }));
+  }, []);
 
-  const handleOptionChange = (index, value) => {
-    const newOptions = [...formData.options];
-    newOptions[index] = value;
-    setFormData({
-      ...formData,
-      options: newOptions
+  const handleOptionChange = useCallback((index, value) => {
+    setFormData(prevData => {
+      const newOptions = [...prevData.options];
+      newOptions[index] = value;
+      return {
+        ...prevData,
+        options: newOptions
+      };
     });
-  };
+  }, []);
+
 
   const addOption = () => {
     if (formData.options.length < 6) {
@@ -75,13 +146,77 @@ function PollCreation({ onBack, onPollCreate }) {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (webApp) {
       webApp.HapticFeedback.impactOccurred('light');
     }
     
+    // If moving from Step 1 to Step 2 and AI is enabled, generate options first
+    if (currentStep === 1 && useAI) {
+      // Check if we already have AI-generated options (not empty default options)
+      const hasDefaultOptions = formData.options.length === 2 && 
+        formData.options.every(opt => opt.trim() === '');
+      
+      if (hasDefaultOptions || formData.options.every(opt => opt.trim() === '')) {
+        await generateAIOptionsForNext();
+      }
+    }
+    
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const generateAIOptionsForNext = async () => {
+    if (!formData.subject.trim()) {
+      setToastMessage('Please enter a poll subject first');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
+
+    setIsGeneratingOptions(true);
+
+    try {
+      const response = await fetch('http://localhost:3001/api/poll-options', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: formData.subject,
+          description: formData.description,
+          category: formData.category
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.options && Array.isArray(result.options)) {
+        // Replace current options with AI-generated ones
+        setFormData({
+          ...formData,
+          options: result.options
+        });
+        
+        setToastMessage(`Generated ${result.options.length} AI options!`);
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } else {
+        throw new Error(result.message || 'Invalid response format');
+      }
+    } catch (error) {
+      console.error('Error generating AI options:', error);
+      setToastMessage(`Failed to generate options: ${error.message}`);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 5000);
+      // Continue to next step even if AI generation fails
+    } finally {
+      setIsGeneratingOptions(false);
     }
   };
 
@@ -94,6 +229,7 @@ function PollCreation({ onBack, onPollCreate }) {
       setCurrentStep(currentStep - 1);
     }
   };
+
 
   const calculateFees = () => {
     const baseFunding = 0.05; // Base funding amount
@@ -194,6 +330,7 @@ function PollCreation({ onBack, onPollCreate }) {
         return (
           <div className="step-content">
             <h2 className="step-title">Basic Information</h2>
+            
             <div className="form-group">
               <label htmlFor="subject">Poll Subject</label>
               <input
@@ -201,7 +338,7 @@ function PollCreation({ onBack, onPollCreate }) {
                 id="subject"
                 value={formData.subject}
                 onChange={(e) => handleInputChange('subject', e.target.value)}
-                placeholder="Enter poll subject"
+                placeholder="What should we vote on?"
                 className="form-input"
               />
             </div>
@@ -212,19 +349,45 @@ function PollCreation({ onBack, onPollCreate }) {
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Describe your poll"
+                placeholder="Describe your poll in detail..."
                 className="form-input form-textarea"
                 rows="3"
               />
             </div>
 
+            <div className="form-group ai-toggle-group">
+              <div className="switch-container ai-toggle-container">
+                <label className="ai-toggle-label">
+                  <Switch
+                    checked={useAI}
+                    onChange={(e) => setUseAI(e.target.checked)}
+                  />
+                  <span className="ai-toggle-text">🤖 Generate options with AI</span>
+                </label>
+              </div>
+              
+              {useAI && (
+                <div className="ai-generation-section">
+                  <p className="ai-description">
+                    ✨ AI will automatically generate poll options when you proceed to the next step based on your subject and description.
+                  </p>
+                  {isGeneratingOptions && (
+                    <div className="ai-generating-indicator">
+                      <span className="loading-spinner"></span>
+                      <span>Generating AI options...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="form-group">
               <label htmlFor="category">Category</label>
-              <select
-                id="category"
+              <Select
+                header="Category"
+                placeholder="Select category"
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
-                className="form-input"
               >
                 <option value="">Select category</option>
                 <option value="technology">Technology</option>
@@ -234,16 +397,16 @@ function PollCreation({ onBack, onPollCreate }) {
                 <option value="business">Business</option>
                 <option value="lifestyle">Lifestyle</option>
                 <option value="other">Other</option>
-              </select>
+              </Select>
             </div>
 
             <div className="form-group">
               <label htmlFor="votingPeriod">Voting Period (hours)</label>
-              <select
-                id="votingPeriod"
+              <Select
+                header="Voting Period"
+                placeholder="Select duration"
                 value={formData.votingPeriod}
                 onChange={(e) => handleInputChange('votingPeriod', parseInt(e.target.value))}
-                className="form-input"
               >
                 <option value={1}>1 hour</option>
                 <option value={6}>6 hours</option>
@@ -252,7 +415,7 @@ function PollCreation({ onBack, onPollCreate }) {
                 <option value={48}>48 hours</option>
                 <option value={72}>72 hours</option>
                 <option value={168}>1 week</option>
-              </select>
+              </Select>
             </div>
           </div>
         );
@@ -277,25 +440,27 @@ function PollCreation({ onBack, onPollCreate }) {
                       className="option-input"
                     />
                     {formData.options.length > 2 && (
-                      <button
-                        type="button"
+                      <Button
+                        mode="plain"
+                        size="small"
                         onClick={() => removeOption(index)}
-                        className="remove-option-btn"
+                        style={{ color: 'var(--tg-theme-destructive-text-color)' }}
                       >
                         ×
-                      </button>
+                      </Button>
                     )}
                   </div>
                 ))}
               </div>
               {formData.options.length < 6 && (
-                <button
-                  type="button"
+                <Button
+                  mode="outline"
+                  size="medium"
+                  stretched
                   onClick={addOption}
-                  className="add-option-btn"
                 >
                   + Add Option
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -309,8 +474,7 @@ function PollCreation({ onBack, onPollCreate }) {
               <label>Source of Funds</label>
               <div className="radio-group">
                 <label className="radio-option">
-                  <input
-                    type="radio"
+                  <Radio
                     name="fundingSource"
                     value="self-funded"
                     checked={formData.fundingSource === 'self-funded'}
@@ -319,8 +483,7 @@ function PollCreation({ onBack, onPollCreate }) {
                   <span>Self-funded</span>
                 </label>
                 <label className="radio-option">
-                  <input
-                    type="radio"
+                  <Radio
                     name="fundingSource"
                     value="crowdfunded"
                     checked={formData.fundingSource === 'crowdfunded'}
@@ -334,8 +497,7 @@ function PollCreation({ onBack, onPollCreate }) {
             {formData.fundingSource === 'self-funded' && (
               <div className="form-group">
                 <label className="checkbox-label">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={formData.openImmediately}
                     onChange={(e) => handleInputChange('openImmediately', e.target.checked)}
                   />
@@ -348,8 +510,7 @@ function PollCreation({ onBack, onPollCreate }) {
               <label>Reward Distribution</label>
               <div className="radio-group">
                 <label className="radio-option">
-                  <input
-                    type="radio"
+                  <Radio
                     name="rewardDistribution"
                     value="equal-share"
                     checked={formData.rewardDistribution === 'equal-share'}
@@ -358,8 +519,7 @@ function PollCreation({ onBack, onPollCreate }) {
                   <span>Equal share (split total fund equally)</span>
                 </label>
                 <label className="radio-option">
-                  <input
-                    type="radio"
+                  <Radio
                     name="rewardDistribution"
                     value="fixed"
                     checked={formData.rewardDistribution === 'fixed'}
@@ -371,14 +531,15 @@ function PollCreation({ onBack, onPollCreate }) {
             </div>
 
             <div className="form-group">
-              <label className="checkbox-label gasless-responses-toggle">
-                <input
-                  type="checkbox"
-                  checked={formData.enableGaslessResponses}
-                  onChange={(e) => handleInputChange('enableGaslessResponses', e.target.checked)}
-                />
-                <span>🆓 Enable gasless responses (recommended)</span>
-              </label>
+              <div className="switch-container gasless-switch-container">
+                <label className="checkbox-label gasless-responses-toggle">
+                  <Switch
+                    checked={formData.enableGaslessResponses}
+                    onChange={(e) => handleInputChange('enableGaslessResponses', e.target.checked)}
+                  />
+                  <span>🆓 Enable gasless responses (recommended)</span>
+                </label>
+              </div>
               <div className="gasless-info-text">
                 {formData.enableGaslessResponses 
                   ? "Users can vote without paying transaction fees. Additional 1% admin fee applies."
@@ -421,67 +582,76 @@ function PollCreation({ onBack, onPollCreate }) {
   };
 
   return (
-    <div className="poll-creation-page">
-      <div className="poll-creation-header">
-        <h1 className="page-title">Creating Polls</h1>
-        <div className="step-indicator">
-          <span className="step-text">Step {currentStep} of 3</span>
-        </div>
-      </div>
-
-      <div className="poll-creation-content">
-        <div className="poll-form-section">
-          <div className="poll-form">
-            {renderStepContent()}
+    <AppRoot>
+      <div className="poll-creation-page">
+        <div className="poll-creation-content">
+          <div className="poll-form-section">
+            <div className="poll-form">
+              {renderStepContent()}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="poll-creation-actions">
-        <div className="action-buttons">
-          {currentStep > 1 && (
-            <button className="back-btn" onClick={handlePrevious}>
-              Previous
-            </button>
-          )}
+        <div className="poll-creation-actions">
+          <div className="action-buttons">
+            {currentStep > 1 && (
+              <Button
+                size="large"
+                mode="outline"
+                stretched
+                onClick={handlePrevious}
+              >
+                Previous
+              </Button>
+            )}
+            
+            {currentStep < 3 ? (
+              <Button
+                size="large"
+                mode="filled"
+                stretched
+                onClick={handleNext}
+                disabled={!isStepValid()}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                size="large"
+                mode="filled"
+                stretched
+                onClick={handleCreate}
+                disabled={!isStepValid() || isCreating}
+              >
+                {isCreating ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    Creating Poll...
+                  </>
+                ) : (
+                  'Create Poll'
+                )}
+              </Button>
+            )}
+          </div>
           
-          {currentStep < 3 ? (
-            <button 
-              className={`next-btn ${!isStepValid() ? 'disabled' : ''}`}
-              onClick={handleNext}
-              disabled={!isStepValid()}
-            >
-              Next
-            </button>
-          ) : (
-            <button
-              onClick={handleCreate}
-              disabled={!isStepValid() || isCreating}
-              className={`create-poll-btn ${!isStepValid() || isCreating ? 'disabled' : ''} ${isCreating ? 'loading' : ''}`}
-            >
-              {isCreating ? (
-                <>
-                  <span className="loading-spinner"></span>
-                  Creating Poll...
-                </>
-              ) : (
-                'Create Poll'
-              )}
-            </button>
-          )}
+          <Button
+            size="medium"
+            mode="plain"
+            stretched
+            onClick={handleBack}
+          >
+            Cancel
+          </Button>
         </div>
-        
-        <button className="cancel-btn" onClick={handleBack}>
-          Cancel
-        </button>
-      </div>
 
-      {showToast && (
-        <div className="toast">
-          {toastMessage}
-        </div>
-      )}
-    </div>
+        {showToast && (
+          <div className="toast">
+            {toastMessage}
+          </div>
+        )}
+      </div>
+    </AppRoot>
   );
 }
 
