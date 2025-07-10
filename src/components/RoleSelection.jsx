@@ -22,32 +22,15 @@ function RoleSelection({ onRoleSelect, onBack }) {
       webApp.HapticFeedback.impactOccurred('light');
     }
     setSelectedRole(role);
-  };
-
-  const handleNext = () => {
-    if (webApp) {
-      webApp.HapticFeedback.impactOccurred('light');
-    }
-    if (onRoleSelect && selectedRole) {
-      onRoleSelect(selectedRole);
-    }
-  };
-
-  const handleBack = () => {
-    if (webApp) {
-      webApp.HapticFeedback.impactOccurred('light');
-    }
-    if (onBack) {
-      onBack();
+    
+    // Automatically proceed to next page
+    if (onRoleSelect) {
+      onRoleSelect(role);
     }
   };
 
   return (
     <div className="role-selection-page">
-      <div className="wallet-info-top">
-        <WalletMenu />
-      </div>
-      
       <div className="role-selection-header">
         <h1 className="app-title">tPolls</h1>
         <h2 className="page-title">Choose your role</h2>
@@ -69,18 +52,6 @@ function RoleSelection({ onRoleSelect, onBack }) {
         </div>
       </div>
 
-      <div className="role-selection-actions">
-        <button className="back-btn" onClick={handleBack}>
-          Back
-        </button>
-        <button 
-          className={`next-btn ${!selectedRole ? 'disabled' : ''}`}
-          onClick={handleNext}
-          disabled={!selectedRole}
-        >
-          Next
-        </button>
-      </div>
     </div>
   );
 }

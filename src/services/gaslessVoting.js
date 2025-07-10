@@ -121,34 +121,53 @@ Nonce: ${voteMessage.nonce}`;
    */
   async submitToRelayer(payload) {
     try {
-      // In a real implementation, this would make an HTTP request to your relayer service
       console.log('Submitting to relayer service...');
       
-      // Simulate relayer processing
-      await this.simulateRelayerProcessing();
+      // Make actual HTTP request to relayer service
+      const response = await fetch(this.relayerEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
       
-      // Mock successful relayer response
+      if (!result.success) {
+        throw new Error(result.message || 'Relayer processing failed');
+      }
+
+      console.log('Relayer response:', result);
+
+      // Transform relayer response to expected format
       return {
         success: true,
-        txHash: `gasless_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        txHash: result.voteId || `gasless_${Date.now()}`, // Use voteId as transaction reference
         gasUsed: '0', // User pays no gas
         relayerAddress: 'EQRelayer...',
-        blockNumber: Math.floor(Math.random() * 1000000)
+        voteId: result.voteId,
+        status: result.status,
+        estimatedProcessTime: result.estimatedProcessTime
       };
       
     } catch (error) {
       console.error('Relayer submission failed:', error);
-      throw new Error('Relayer service unavailable');
+      
+      // Check if it's a network error and fallback might be appropriate
+      if (error.name === 'TypeError' || error.message.includes('fetch')) {
+        throw new Error('Unable to connect to relayer service. Please check your connection.');
+      }
+      
+      throw new Error(`Relayer service error: ${error.message}`);
     }
   }
 
-  /**
-   * Simulate relayer processing time
-   */
-  async simulateRelayerProcessing() {
-    // Simulate network delay and processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
 
   /**
    * Create a mock signature for demo purposes
@@ -175,8 +194,28 @@ Nonce: ${voteMessage.nonce}`;
    */
   async isGaslessVotingAvailable() {
     try {
-      // In production, this would check relayer service health
-      return true;
+      // Check relayer service health
+      const healthEndpoint = this.relayerEndpoint.replace('/relay', '/health');
+      const response = await fetch(healthEndpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        console.warn('Relayer health check failed:', response.status);
+        return false;
+      }
+
+      const healthData = await response.json();
+      const isHealthy = healthData.status === 'healthy' || healthData.status === 'warning';
+      
+      if (!isHealthy) {
+        console.warn('Relayer service is unhealthy:', healthData.status);
+      }
+      
+      return isHealthy;
     } catch (error) {
       console.error('Gasless voting service unavailable:', error);
       return false;

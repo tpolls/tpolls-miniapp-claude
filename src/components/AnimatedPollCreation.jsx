@@ -461,10 +461,6 @@ function AnimatedPollCreation({ onBack, onPollCreate }) {
 
   return (
     <div className="poll-creation-page animated-poll-creation">
-      <div className="wallet-info-top">
-        <WalletMenu />
-      </div>
-      
       <div className="poll-creation-header">
         <h1 className="page-title animated-title">Creating Polls</h1>
         <div className="step-indicator">

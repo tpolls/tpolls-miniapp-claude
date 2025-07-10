@@ -95,9 +95,6 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
   if (!poll) {
     return (
       <div className="poll-response-page">
-        <div className="wallet-info-top">
-          <WalletMenu />
-        </div>
         <div className="error-state">
           <h2>Poll not found</h2>
           <p>The selected poll could not be loaded.</p>
@@ -111,10 +108,6 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
 
   return (
     <div className="poll-response-page">
-      <div className="wallet-info-top">
-        <WalletMenu />
-      </div>
-      
       <div className="poll-response-header">
         <h1 className="page-title">Respond to Poll</h1>
       </div>

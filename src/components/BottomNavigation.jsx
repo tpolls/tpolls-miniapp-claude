@@ -45,21 +45,27 @@ function BottomNavigation({ currentPage, onNavigate }) {
       page: 'main'
     },
     {
-      id: 'create',
-      label: 'Create',
-      icon: '➕',
-      page: 'poll-creation'
-    },
-    {
       id: 'polls',
       label: 'Polls',
       icon: '📊',
       page: 'poll-selection'
     },
     {
-      id: 'settings',
-      label: 'Settings',
-      icon: '⚙️',
+      id: 'create',
+      label: 'Create',
+      icon: '➕',
+      page: 'poll-creation'
+    },
+    {
+      id: 'funding',
+      label: 'Fund',
+      icon: '💰',
+      page: 'poll-funding'
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: '👤',
       page: 'user-settings'
     }
   ];
@@ -88,8 +94,8 @@ function BottomNavigation({ currentPage, onNavigate }) {
             <button
               key={item.id}
               className={`nav-item ${isActive ? 'active' : ''}`}
+              data-page={item.page}
               onClick={() => handleNavigation(item.page)}
-              aria-label={item.label}
             >
               <div className="nav-icon">
                 {item.icon}

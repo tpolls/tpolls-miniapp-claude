@@ -10,7 +10,11 @@ import AnimatedPollCreation from './components/AnimatedPollCreation';
 import PollSelection from './components/PollSelection';
 import PollResponse from './components/PollResponse';
 import UserSettings from './components/UserSettings';
+import PollFunding from './components/PollFunding';
+import PollAdministration from './components/PollAdministration';
 import BottomNavigation from './components/BottomNavigation';
+import TelegramUIExamples from './components/examples/TelegramUIExamples';
+import TelegramUIPollCreation from './components/TelegramUIPollCreation';
 import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted } from './utils/userHistory';
 import { getAnimationMode } from './utils/animationMode';
 import './components/Welcome.css';
@@ -23,6 +27,8 @@ import './components/AnimatedPollCreation.css';
 import './components/PollSelection.css';
 import './components/PollResponse.css';
 import './components/UserSettings.css';
+import './components/PollFunding.css';
+import './components/PollAdministration.css';
 import './components/BottomNavigation.css';
 import './components/WalletMenu.css';
 
@@ -37,6 +43,11 @@ function App() {
   useEffect(() => {
     // Load animation mode preference
     setAnimationMode(getAnimationMode());
+    
+    // Set up global navigation functions for MainApp
+    window.navigateToExamples = () => setCurrentPage('telegram-ui-examples');
+    window.navigateToTelegramUIPollCreation = () => setCurrentPage('telegram-ui-poll-creation');
+    window.navigateToPollAdmin = () => setCurrentPage('poll-administration');
     
     const unsubscribe = tonConnectUI.onStatusChange((walletInfo) => {
       setIsConnected(!!walletInfo);
@@ -74,7 +85,7 @@ function App() {
     if (walletAddress) {
       markOnboardingCompleted(walletAddress);
     }
-    setCurrentPage('animation-mode-selection');
+    setCurrentPage('role-selection');
   };
 
   const handleAnimationModeSelect = (mode) => {
@@ -180,6 +191,18 @@ function App() {
       )}
       {currentPage === 'user-settings' && isConnected && (
         <UserSettings onBack={handleBottomNavigation} onRerunGettingStarted={handleRerunGettingStarted} />
+      )}
+      {currentPage === 'poll-funding' && isConnected && (
+        <PollFunding onBack={handleBottomNavigation} />
+      )}
+      {currentPage === 'poll-administration' && isConnected && (
+        <PollAdministration onBack={handleBottomNavigation} />
+      )}
+      {currentPage === 'telegram-ui-examples' && isConnected && (
+        <TelegramUIExamples onBack={handleBottomNavigation} />
+      )}
+      {currentPage === 'telegram-ui-poll-creation' && isConnected && (
+        <TelegramUIPollCreation onPollCreate={handlePollCreate} onBack={handleBottomNavigation} />
       )}
       
       {isConnected && (

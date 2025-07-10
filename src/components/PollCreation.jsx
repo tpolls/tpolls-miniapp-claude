@@ -422,10 +422,6 @@ function PollCreation({ onBack, onPollCreate }) {
 
   return (
     <div className="poll-creation-page">
-      <div className="wallet-info-top">
-        <WalletMenu />
-      </div>
-      
       <div className="poll-creation-header">
         <h1 className="page-title">Creating Polls</h1>
         <div className="step-indicator">

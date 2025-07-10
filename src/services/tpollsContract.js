@@ -245,6 +245,12 @@ class TPollsContract {
       const pollOptions = this._getPollOptions(pollId);
       const gaslessEnabled = this._getPollGaslessPreference(pollId);
       
+      const startTime = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+      const endTime = Math.floor(Date.now() / 1000) + 82800; // 23 hours from now
+      const totalResponses = Math.floor(Math.random() * 100) + 10;
+      const totalRewardFund = `${(Math.random() * 2 + 0.1).toFixed(2)} TON`;
+      const daysRemaining = Math.floor((endTime - Math.floor(Date.now() / 1000)) / 86400);
+
       return {
         id: pollId,
         creator: 'EQDxxx...', // Would come from contract
@@ -252,10 +258,14 @@ class TPollsContract {
         description: `Description for poll ${pollId}`, // Would come from contract
         options: pollOptions || ['Option 1', 'Option 2', 'Option 3'],
         optionCount: pollOptions?.length || 3,
-        startTime: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
-        endTime: Math.floor(Date.now() / 1000) + 82800, // 23 hours from now
+        startTime,
+        endTime,
         isActive: true,
-        totalVotes: 42,
+        totalVotes: totalResponses, // Keep for backward compatibility
+        totalResponses, // New field for PollSelection
+        totalRewardFund, // New field for PollSelection
+        daysRemaining, // New field for PollSelection
+        duration: daysRemaining > 0 ? `${daysRemaining + 1} days` : 'Ended', // New field for PollSelection
         rewardPerVote: '0.01',
         gaslessEnabled: gaslessEnabled !== null ? gaslessEnabled : true // Default to gasless enabled
       };

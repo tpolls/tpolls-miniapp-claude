@@ -41,12 +41,6 @@ function GettingStarted({ onContinue }) {
 
   return (
     <div className={`getting-started-page ${isConnected ? 'wallet-connected' : ''}`}>
-      {isConnected && (
-        <div className="wallet-info-top">
-          <WalletMenu />
-        </div>
-      )}
-      
       <div className="getting-started-header">
         <h1 className="app-title">tPolls</h1>
         <h2 className="page-title">Get Started</h2>

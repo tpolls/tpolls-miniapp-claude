@@ -246,6 +246,15 @@
   border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
   border-radius: 12px;
   min-width: 100px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border-color: var(--tg-theme-button-color, #007aff);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
 }
 
 .stat-icon {
@@ -264,4 +273,48 @@
   font-size: 20px;
   font-weight: 700;
   color: var(--tg-theme-button-color, #007aff);
+}
+
+.examples-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%);
+  border-radius: 16px;
+  border: 1px solid #4CAF50;
+  text-align: center;
+}
+
+.examples-section h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #000);
+  margin: 0 0 8px 0;
+}
+
+.examples-section p {
+  font-size: 14px;
+  color: var(--tg-theme-hint-color, #666);
+  margin: 0 0 20px 0;
+  line-height: 1.4;
+}
+
+.examples-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .examples-section {
+    padding: 20px;
+    margin-top: 24px;
+  }
+  
+  .examples-section h3 {
+    font-size: 18px;
+  }
+  
+  .examples-section p {
+    font-size: 13px;
+  }
 }

@@ -90,15 +90,61 @@ function MainApp({ onLogout, onRerunGettingStarted }) {
           </div>
           
           <div className="quick-stats">
-            <div className="stat-item">
+            <div className="stat-item" onClick={() => {
+              if (webApp) {
+                webApp.HapticFeedback.impactOccurred('light');
+              }
+              if (window.navigateToPollAdmin) {
+                window.navigateToPollAdmin();
+              }
+            }}>
               <span className="stat-icon">📊</span>
               <span className="stat-label">Your Polls</span>
-              <span className="stat-value">0</span>
+              <span className="stat-value">4</span>
             </div>
             <div className="stat-item">
               <span className="stat-icon">✅</span>
               <span className="stat-label">Votes Cast</span>
-              <span className="stat-value">0</span>
+              <span className="stat-value">12</span>
+            </div>
+          </div>
+
+          {/* TelegramUI Examples Section */}
+          <div className="examples-section">
+            <h3>TelegramUI Examples</h3>
+            <p>Explore modern Telegram UI components and enhanced poll creation</p>
+            <div className="examples-buttons">
+              <button 
+                className="action-btn secondary"
+                onClick={() => {
+                  if (webApp) {
+                    webApp.HapticFeedback.impactOccurred('light');
+                  }
+                  // This will be handled by a prop we'll add
+                  if (window.navigateToExamples) {
+                    window.navigateToExamples();
+                  }
+                }}
+              >
+                <span className="btn-icon">🎨</span>
+                UI Examples
+              </button>
+              
+              <button 
+                className="action-btn primary"
+                onClick={() => {
+                  if (webApp) {
+                    webApp.HapticFeedback.impactOccurred('light');
+                  }
+                  // This will be handled by a prop we'll add
+                  if (window.navigateToTelegramUIPollCreation) {
+                    window.navigateToTelegramUIPollCreation();
+                  }
+                }}
+              >
+                <span className="btn-icon">✨</span>
+                Enhanced Poll Creation
+              </button>
             </div>
           </div>
         </div>
