@@ -9,6 +9,8 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
   const [webApp, setWebApp] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gaslessInfo, setGaslessInfo] = useState(null);
+  const [useGaslessVoting, setUseGaslessVoting] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -20,7 +22,19 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
     
     // Initialize contract service
     tpollsContract.init(tonConnectUI);
+    
+    // Load gasless voting information
+    loadGaslessInfo();
   }, [tonConnectUI]);
+
+  const loadGaslessInfo = async () => {
+    try {
+      const info = await tpollsContract.getGaslessVotingInfo();
+      setGaslessInfo(info);
+    } catch (error) {
+      console.error('Error loading gasless info:', error);
+    }
+  };
 
   const handleOptionSelect = (optionIndex) => {
     if (webApp) {
@@ -39,7 +53,7 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
     setIsSubmitting(true);
 
     try {
-      const result = await tpollsContract.voteOnPoll(poll.id, selectedOption);
+      const result = await tpollsContract.voteOnPoll(poll.id, selectedOption, useGaslessVoting);
       
       if (result.success) {
         const response = {
@@ -47,10 +61,15 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
           selectedOption: selectedOption,
           optionText: poll.options[selectedOption],
           timestamp: new Date().toISOString(),
-          transactionHash: result.transactionHash
+          transactionHash: result.transactionHash,
+          gasless: result.gasless
         };
 
-        alert('Vote submitted successfully! You may receive rewards after the poll ends.');
+        const successMessage = result.gasless 
+          ? 'Vote submitted successfully (gasless)! No transaction fees charged. You may receive rewards after the poll ends.'
+          : 'Vote submitted successfully! You may receive rewards after the poll ends.';
+        
+        alert(successMessage);
         
         if (onSubmitResponse) {
           onSubmitResponse(response);
@@ -76,9 +95,6 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
   if (!poll) {
     return (
       <div className="poll-response-page">
-        <div className="wallet-info-top">
-          <WalletMenu />
-        </div>
         <div className="error-state">
           <h2>Poll not found</h2>
           <p>The selected poll could not be loaded.</p>
@@ -92,10 +108,6 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
 
   return (
     <div className="poll-response-page">
-      <div className="wallet-info-top">
-        <WalletMenu />
-      </div>
-      
       <div className="poll-response-header">
         <h1 className="page-title">Respond to Poll</h1>
       </div>
@@ -133,6 +145,48 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
           <div className="poll-stats">
             <span className="vote-count">{poll.totalVotes} votes so far</span>
           </div>
+
+          {gaslessInfo && gaslessInfo.available && poll.gaslessEnabled && (
+            <div className="gasless-info">
+              <div className="gasless-toggle">
+                <label className="toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={useGaslessVoting}
+                    onChange={(e) => setUseGaslessVoting(e.target.checked)}
+                  />
+                  <span className="toggle-text">
+                    🆓 Use gasless voting (recommended)
+                  </span>
+                </label>
+              </div>
+              {useGaslessVoting && (
+                <div className="gasless-benefits">
+                  <div className="benefit-item">
+                    <span className="benefit-icon">💰</span>
+                    <span className="benefit-text">Save {gaslessInfo.estimatedGasSaved}</span>
+                  </div>
+                  <div className="benefit-item">
+                    <span className="benefit-icon">⚡</span>
+                    <span className="benefit-text">{gaslessInfo.benefitMessage}</span>
+                  </div>
+                  <div className="benefit-item">
+                    <span className="benefit-icon">👤</span>
+                    <span className="benefit-text">Poll creator enabled gasless voting</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {poll.gaslessEnabled === false && (
+            <div className="gasless-unavailable">
+              <div className="unavailable-note">
+                <span className="note-icon">ℹ️</span>
+                <span>Poll creator opted for traditional voting. Transaction fees apply.</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

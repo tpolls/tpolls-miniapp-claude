@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 40px 24px 24px;
+  padding: 40px 24px 100px; /* Extra bottom padding for navigation */
   background: var(--tg-theme-bg-color, #ffffff);
   text-align: center;
   position: relative;

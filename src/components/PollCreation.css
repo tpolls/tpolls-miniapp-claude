@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 40px 24px 24px;
+  padding: 40px 24px 100px; /* Extra bottom padding for navigation */
   background: var(--tg-theme-bg-color, #ffffff);
   position: relative;
 }
@@ -24,8 +24,18 @@
   font-size: 32px;
   font-weight: 700;
   color: var(--tg-theme-text-color, #000);
-  margin: 0;
+  margin: 0 0 8px 0;
   line-height: 1.2;
+}
+
+.step-indicator {
+  margin-top: 8px;
+}
+
+.step-text {
+  font-size: 16px;
+  color: var(--tg-theme-hint-color, #666);
+  font-weight: 500;
 }
 
 .poll-creation-content {
@@ -49,7 +59,19 @@
   padding: 24px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
+}
+
+.step-content {
+  width: 100%;
+}
+
+.step-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #000);
+  margin: 0 0 24px 0;
+  text-align: center;
 }
 
 .form-group {
@@ -70,7 +92,7 @@
   border: 2px solid var(--tg-theme-hint-color, #e0e0e0);
   border-radius: 8px;
   font-size: 16px;
-  background: white;
+  background: var(--tg-theme-bg-color, #ffffff);
   color: var(--tg-theme-text-color, #000);
   transition: border-color 0.2s ease;
 }
@@ -78,6 +100,11 @@
 .form-input:focus {
   outline: none;
   border-color: var(--tg-theme-button-color, #007aff);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 .poll-options-list {
@@ -102,7 +129,7 @@
   height: 20px;
   border: 2px solid var(--tg-theme-hint-color, #ccc);
   border-radius: 50%;
-  background: white;
+  background: var(--tg-theme-bg-color, #ffffff);
   position: relative;
 }
 
@@ -112,7 +139,7 @@
   border: 2px solid var(--tg-theme-hint-color, #e0e0e0);
   border-radius: 6px;
   font-size: 14px;
-  background: white;
+  background: var(--tg-theme-bg-color, #ffffff);
   color: var(--tg-theme-text-color, #000);
   transition: border-color 0.2s ease;
 }
@@ -214,13 +241,20 @@
 
 .poll-creation-actions {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
   padding: 20px 0;
 }
 
-.back-btn {
-  width: 100%;
-  max-width: 140px;
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.back-btn, .next-btn {
+  min-width: 120px;
   padding: 16px 24px;
   border: none;
   border-radius: 12px;
@@ -234,14 +268,52 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
-.back-btn:hover {
+.next-btn {
+  background: #007aff;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+}
+
+.back-btn:hover, .next-btn:hover:not(.disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
-.back-btn:active {
+.next-btn:hover:not(.disabled) {
+  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+}
+
+.back-btn:active, .next-btn:active:not(.disabled) {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.next-btn:active:not(.disabled) {
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.next-btn.disabled {
+  background: var(--tg-theme-hint-color, #ccc);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.cancel-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: var(--tg-theme-hint-color, #666);
+  text-decoration: underline;
+}
+
+.cancel-btn:hover {
+  color: var(--tg-theme-text-color, #000);
 }
 
 @media (max-width: 768px) {
@@ -296,4 +368,161 @@
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 2px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--tg-theme-bg-color, #ffffff);
+}
+
+.radio-option:hover {
+  border-color: var(--tg-theme-button-color, #007aff);
+  background: var(--tg-theme-secondary-bg-color, #f8fafe);
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+}
+
+.radio-option span {
+  font-size: 16px;
+  color: var(--tg-theme-text-color, #000);
+  font-weight: 500;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 2px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--tg-theme-bg-color, #ffffff);
+  margin-top: 8px;
+}
+
+.checkbox-label:hover {
+  border-color: var(--tg-theme-button-color, #007aff);
+  background: var(--tg-theme-secondary-bg-color, #f8fafe);
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+}
+
+.checkbox-label span {
+  font-size: 16px;
+  color: var(--tg-theme-text-color, #000);
+  font-weight: 500;
+}
+
+.gasless-responses-toggle {
+  background: linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%);
+  border-color: #4CAF50;
+}
+
+.gasless-responses-toggle:hover {
+  border-color: #2e7d32;
+  background: linear-gradient(135deg, #d4edda 0%, #e7f3ff 100%);
+}
+
+.gasless-info-text {
+  font-size: 14px;
+  color: var(--tg-theme-hint-color, #666);
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border-radius: 6px;
+  border-left: 3px solid var(--tg-theme-button-color, #007aff);
+}
+
+.fee-breakdown {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border-radius: 12px;
+  border: 2px solid var(--tg-theme-hint-color, #e0e0e0);
+}
+
+.fee-breakdown h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #000);
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.fee-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+}
+
+.fee-item:last-of-type {
+  border-bottom: none;
+}
+
+.fee-item.total-fee {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 2px solid var(--tg-theme-button-color, #007aff);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.fee-label {
+  font-size: 14px;
+  color: var(--tg-theme-text-color, #000);
+}
+
+.fee-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tg-theme-button-color, #007aff);
+}
+
+.total-fee .fee-label,
+.total-fee .fee-value {
+  font-size: 16px;
+  color: var(--tg-theme-text-color, #000);
+}
+
+.gasless-benefit-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%);
+  border-radius: 8px;
+  border: 1px solid #4CAF50;
+}
+
+.gasless-benefit-note .benefit-icon {
+  font-size: 16px;
+}
+
+.gasless-benefit-note span:last-child {
+  font-size: 13px;
+  color: #2e7d32;
+  font-weight: 500;
+  line-height: 1.3;
 }

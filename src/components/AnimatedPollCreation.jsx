@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
+import Lottie from 'lottie-react';
 import WalletMenu from './WalletMenu';
 import tpollsContract from '../services/tpollsContract';
+import creatorAnimation from '../assets/creator.json';
 import './PollCreation.css';
+import './AnimatedPollCreation.css';
 
-function PollCreation({ onBack, onPollCreate }) {
+function AnimatedPollCreation({ onBack, onPollCreate }) {
   const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -27,6 +30,7 @@ function PollCreation({ onBack, onPollCreate }) {
   const [isCreating, setIsCreating] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [characterState, setCharacterState] = useState('idle'); // 'idle', 'thinking', 'excited', 'working'
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -39,6 +43,19 @@ function PollCreation({ onBack, onPollCreate }) {
     // Initialize contract service
     tpollsContract.init(tonConnectUI);
   }, [tonConnectUI]);
+
+  // Update character state based on form interactions
+  useEffect(() => {
+    if (isCreating) {
+      setCharacterState('working');
+    } else if (currentStep === 3) {
+      setCharacterState('excited');
+    } else if (formData.subject || formData.description) {
+      setCharacterState('thinking');
+    } else {
+      setCharacterState('idle');
+    }
+  }, [currentStep, formData.subject, formData.description, isCreating]);
 
   const handleInputChange = (field, value) => {
     setFormData({
@@ -188,6 +205,28 @@ function PollCreation({ onBack, onPollCreate }) {
     }
   };
 
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1: return 'Basic Information';
+      case 2: return 'Poll Options';
+      case 3: return 'Poll Configuration';
+      default: return 'Creating Poll';
+    }
+  };
+
+  const getCharacterMessage = () => {
+    switch (characterState) {
+      case 'thinking':
+        return "Great! I can see you're building something interesting...";
+      case 'excited':
+        return "Fantastic! We're almost ready to launch your poll!";
+      case 'working':
+        return "Creating your poll on the blockchain...";
+      default:
+        return "Hi! I'm here to help you create an amazing poll!";
+    }
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -202,7 +241,7 @@ function PollCreation({ onBack, onPollCreate }) {
                 value={formData.subject}
                 onChange={(e) => handleInputChange('subject', e.target.value)}
                 placeholder="Enter poll subject"
-                className="form-input"
+                className="form-input animated-input"
               />
             </div>
 
@@ -213,7 +252,7 @@ function PollCreation({ onBack, onPollCreate }) {
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Describe your poll"
-                className="form-input form-textarea"
+                className="form-input form-textarea animated-input"
                 rows="3"
               />
             </div>
@@ -224,7 +263,7 @@ function PollCreation({ onBack, onPollCreate }) {
                 id="category"
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
-                className="form-input"
+                className="form-input animated-input"
               >
                 <option value="">Select category</option>
                 <option value="technology">Technology</option>
@@ -243,7 +282,7 @@ function PollCreation({ onBack, onPollCreate }) {
                 id="votingPeriod"
                 value={formData.votingPeriod}
                 onChange={(e) => handleInputChange('votingPeriod', parseInt(e.target.value))}
-                className="form-input"
+                className="form-input animated-input"
               >
                 <option value={1}>1 hour</option>
                 <option value={6}>6 hours</option>
@@ -265,22 +304,22 @@ function PollCreation({ onBack, onPollCreate }) {
               <label>Add your poll options</label>
               <div className="poll-options-list">
                 {formData.options.map((option, index) => (
-                  <div key={index} className="poll-option-item">
+                  <div key={index} className="poll-option-item animated-option">
                     <div className="option-radio">
-                      <div className="radio-button"></div>
+                      <div className="radio-button animated-radio"></div>
                     </div>
                     <input
                       type="text"
                       value={option}
                       onChange={(e) => handleOptionChange(index, e.target.value)}
                       placeholder={`Option ${index + 1}`}
-                      className="option-input"
+                      className="option-input animated-input"
                     />
                     {formData.options.length > 2 && (
                       <button
                         type="button"
                         onClick={() => removeOption(index)}
-                        className="remove-option-btn"
+                        className="remove-option-btn animated-button"
                       >
                         ×
                       </button>
@@ -292,7 +331,7 @@ function PollCreation({ onBack, onPollCreate }) {
                 <button
                   type="button"
                   onClick={addOption}
-                  className="add-option-btn"
+                  className="add-option-btn animated-button"
                 >
                   + Add Option
                 </button>
@@ -308,7 +347,7 @@ function PollCreation({ onBack, onPollCreate }) {
             <div className="form-group">
               <label>Source of Funds</label>
               <div className="radio-group">
-                <label className="radio-option">
+                <label className="radio-option animated-radio-option">
                   <input
                     type="radio"
                     name="fundingSource"
@@ -318,7 +357,7 @@ function PollCreation({ onBack, onPollCreate }) {
                   />
                   <span>Self-funded</span>
                 </label>
-                <label className="radio-option">
+                <label className="radio-option animated-radio-option">
                   <input
                     type="radio"
                     name="fundingSource"
@@ -333,7 +372,7 @@ function PollCreation({ onBack, onPollCreate }) {
 
             {formData.fundingSource === 'self-funded' && (
               <div className="form-group">
-                <label className="checkbox-label">
+                <label className="checkbox-label animated-checkbox">
                   <input
                     type="checkbox"
                     checked={formData.openImmediately}
@@ -347,7 +386,7 @@ function PollCreation({ onBack, onPollCreate }) {
             <div className="form-group">
               <label>Reward Distribution</label>
               <div className="radio-group">
-                <label className="radio-option">
+                <label className="radio-option animated-radio-option">
                   <input
                     type="radio"
                     name="rewardDistribution"
@@ -357,7 +396,7 @@ function PollCreation({ onBack, onPollCreate }) {
                   />
                   <span>Equal share (split total fund equally)</span>
                 </label>
-                <label className="radio-option">
+                <label className="radio-option animated-radio-option">
                   <input
                     type="radio"
                     name="rewardDistribution"
@@ -371,7 +410,7 @@ function PollCreation({ onBack, onPollCreate }) {
             </div>
 
             <div className="form-group">
-              <label className="checkbox-label gasless-responses-toggle">
+              <label className="checkbox-label gasless-responses-toggle animated-checkbox">
                 <input
                   type="checkbox"
                   checked={formData.enableGaslessResponses}
@@ -387,7 +426,7 @@ function PollCreation({ onBack, onPollCreate }) {
               </div>
             </div>
 
-            <div className="fee-breakdown">
+            <div className="fee-breakdown animated-breakdown">
               <h3>Fee Breakdown</h3>
               <div className="fee-item">
                 <span className="fee-label">Base funding:</span>
@@ -421,17 +460,35 @@ function PollCreation({ onBack, onPollCreate }) {
   };
 
   return (
-    <div className="poll-creation-page">
+    <div className="poll-creation-page animated-poll-creation">
       <div className="poll-creation-header">
-        <h1 className="page-title">Creating Polls</h1>
+        <h1 className="page-title animated-title">Creating Polls</h1>
         <div className="step-indicator">
           <span className="step-text">Step {currentStep} of 3</span>
         </div>
       </div>
 
       <div className="poll-creation-content">
+        <div className="animated-character-section">
+          <div className="character-container">
+            <div className="character-animation">
+              <Lottie 
+                animationData={creatorAnimation}
+                style={{ width: 120, height: 120 }}
+                loop={true}
+                autoplay={true}
+              />
+            </div>
+            <div className="character-message">
+              <div className="message-bubble">
+                {getCharacterMessage()}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="poll-form-section">
-          <div className="poll-form">
+          <div className="poll-form animated-form">
             {renderStepContent()}
           </div>
         </div>
@@ -440,14 +497,14 @@ function PollCreation({ onBack, onPollCreate }) {
       <div className="poll-creation-actions">
         <div className="action-buttons">
           {currentStep > 1 && (
-            <button className="back-btn" onClick={handlePrevious}>
+            <button className="back-btn animated-button" onClick={handlePrevious}>
               Previous
             </button>
           )}
           
           {currentStep < 3 ? (
             <button 
-              className={`next-btn ${!isStepValid() ? 'disabled' : ''}`}
+              className={`next-btn animated-button ${!isStepValid() ? 'disabled' : ''}`}
               onClick={handleNext}
               disabled={!isStepValid()}
             >
@@ -457,11 +514,11 @@ function PollCreation({ onBack, onPollCreate }) {
             <button
               onClick={handleCreate}
               disabled={!isStepValid() || isCreating}
-              className={`create-poll-btn ${!isStepValid() || isCreating ? 'disabled' : ''} ${isCreating ? 'loading' : ''}`}
+              className={`create-poll-btn animated-button ${!isStepValid() || isCreating ? 'disabled' : ''} ${isCreating ? 'loading' : ''}`}
             >
               {isCreating ? (
                 <>
-                  <span className="loading-spinner"></span>
+                  <span className="loading-spinner animated-spinner"></span>
                   Creating Poll...
                 </>
               ) : (
@@ -471,13 +528,13 @@ function PollCreation({ onBack, onPollCreate }) {
           )}
         </div>
         
-        <button className="cancel-btn" onClick={handleBack}>
+        <button className="cancel-btn animated-button" onClick={handleBack}>
           Cancel
         </button>
       </div>
 
       {showToast && (
-        <div className="toast">
+        <div className="toast animated-toast">
           {toastMessage}
         </div>
       )}
@@ -485,4 +542,4 @@ function PollCreation({ onBack, onPollCreate }) {
   );
 }
 
-export default PollCreation;
+export default AnimatedPollCreation;

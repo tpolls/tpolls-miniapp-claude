@@ -8,35 +8,51 @@ import './PollSelection.css';
 const mockPolls = [
   {
     id: 1,
-    question: "What's your favorite programming language?",
+    title: "What's your favorite programming language?",
+    description: "Help us understand which programming language is most popular among developers in our community.",
     options: ["JavaScript", "Python", "Java", "C++"],
     author: "Developer123",
     createdAt: "2 hours ago",
-    totalVotes: 42
+    totalResponses: 42,
+    totalRewardFund: "0.5 TON",
+    daysRemaining: 3,
+    duration: "7 days"
   },
   {
     id: 2,
-    question: "Which framework should we use for our next project?",
+    title: "Which framework should we use for our next project?",
+    description: "We're starting a new frontend project and need to decide on the best framework for our team.",
     options: ["React", "Vue", "Angular", "Svelte"],
     author: "TeamLead",
     createdAt: "5 hours ago",
-    totalVotes: 28
+    totalResponses: 28,
+    totalRewardFund: "1.2 TON",
+    daysRemaining: 5,
+    duration: "7 days"
   },
   {
     id: 3,
-    question: "What's the best time for team meetings?",
+    title: "What's the best time for team meetings?",
+    description: "Trying to find the optimal meeting time that works for everyone across different time zones.",
     options: ["Morning (9-11 AM)", "Afternoon (2-4 PM)", "Evening (6-8 PM)"],
     author: "ProjectManager",
     createdAt: "1 day ago",
-    totalVotes: 15
+    totalResponses: 15,
+    totalRewardFund: "0.3 TON",
+    daysRemaining: 1,
+    duration: "3 days"
   },
   {
     id: 4,
-    question: "Which feature should we prioritize next?",
+    title: "Which feature should we prioritize next?",
+    description: "Our product roadmap has several exciting features planned. Help us decide which one to tackle first.",
     options: ["Dark mode", "Mobile app", "API improvements", "Better analytics"],
     author: "ProductOwner",
     createdAt: "2 days ago",
-    totalVotes: 67
+    totalResponses: 67,
+    totalRewardFund: "2.1 TON",
+    daysRemaining: 0,
+    duration: "Ended"
   }
 ];
 
@@ -79,14 +95,10 @@ function PollSelection({ onBack, onPollSelect }) {
       webApp.HapticFeedback.impactOccurred('light');
     }
     setSelectedPoll(poll);
-  };
-
-  const handleRespond = () => {
-    if (webApp) {
-      webApp.HapticFeedback.impactOccurred('light');
-    }
-    if (onPollSelect && selectedPoll) {
-      onPollSelect(selectedPoll);
+    
+    // Automatically proceed to poll response
+    if (onPollSelect) {
+      onPollSelect(poll);
     }
   };
 
@@ -101,10 +113,6 @@ function PollSelection({ onBack, onPollSelect }) {
 
   return (
     <div className="poll-selection-page">
-      <div className="wallet-info-top">
-        <WalletMenu />
-      </div>
-      
       <div className="poll-selection-header">
         <h1 className="page-title">Select a Poll</h1>
         <p className="page-subtitle">Choose a poll to respond to</p>
@@ -125,27 +133,25 @@ function PollSelection({ onBack, onPollSelect }) {
               onClick={() => handlePollSelect(poll)}
             >
               <div className="poll-card-header">
-                <h3 className="poll-question">{poll.question}</h3>
-                <div className="poll-meta">
-                  <span className="poll-author">by {poll.author}</span>
-                  <span className="poll-time">{poll.createdAt}</span>
-                </div>
+                <h3 className="poll-title">{poll.title}</h3>
+                <p className="poll-description">{poll.description}</p>
               </div>
               
-              <div className="poll-options-preview">
-                {poll.options.slice(0, 3).map((option, index) => (
-                  <div key={index} className="poll-option-preview">
-                    <div className="option-radio-preview"></div>
-                    <span className="option-text-preview">{option}</span>
-                  </div>
-                ))}
-                {poll.options.length > 3 && (
-                  <div className="more-options">+{poll.options.length - 3} more</div>
-                )}
-              </div>
-
-              <div className="poll-stats">
-                <span className="vote-count">{poll.totalVotes} votes</span>
+              <div className="poll-info">
+                <div className="poll-info-row">
+                  <span className="info-label">Responses:</span>
+                  <span className="info-value">{poll.totalResponses}</span>
+                </div>
+                <div className="poll-info-row">
+                  <span className="info-label">Reward Fund:</span>
+                  <span className="info-value">{poll.totalRewardFund}</span>
+                </div>
+                <div className="poll-info-row">
+                  <span className="info-label">Duration:</span>
+                  <span className="info-value">
+                    {poll.daysRemaining > 0 ? `${poll.daysRemaining} days remaining` : poll.duration}
+                  </span>
+                </div>
               </div>
               </div>
             ))}
@@ -159,19 +165,6 @@ function PollSelection({ onBack, onPollSelect }) {
             <p>There are no polls to respond to at the moment.</p>
           </div>
         )}
-      </div>
-
-      <div className="poll-selection-actions">
-        <button className="back-btn" onClick={handleBack}>
-          Back
-        </button>
-        <button 
-          className={`respond-btn ${!selectedPoll ? 'disabled' : ''}`}
-          onClick={handleRespond}
-          disabled={!selectedPoll}
-        >
-          Respond
-        </button>
       </div>
     </div>
   );
