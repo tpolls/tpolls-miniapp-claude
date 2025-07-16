@@ -102,6 +102,123 @@
   border-color: var(--tg-theme-button-color, #007aff);
 }
 
+/* Hybrid Telegram UI + HTML inputs styling */
+.poll-option-input-wrapper {
+  width: 100%;
+}
+
+.poll-option-input-wrapper label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #000);
+  margin-bottom: 8px;
+}
+
+.poll-option-input-wrapper .form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000);
+  transition: border-color 0.2s ease;
+}
+
+.poll-option-input-wrapper .form-input:focus {
+  outline: none;
+  border-color: var(--tg-theme-button-color, #007aff);
+}
+
+/* Telegram UI Cell integration with HTML inputs */
+.tgui-cell .form-group {
+  margin: 0;
+  width: 100%;
+}
+
+.tgui-cell .form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #000);
+  margin-bottom: 8px;
+}
+
+.tgui-cell .form-input {
+  border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  background: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000);
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.tgui-cell .form-input:focus {
+  outline: none;
+  border-color: var(--tg-theme-button-color, #007aff);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+/* Telegram UI Switch visibility improvements for dark mode */
+.tgui-switch {
+  background-color: var(--tg-theme-hint-color, #8e8e93) !important;
+  border: 1px solid var(--tg-theme-separator-color, rgba(60, 60, 67, 0.36)) !important;
+  transition: background-color 0.3s ease !important;
+}
+
+.tgui-switch[data-checked="true"] {
+  background-color: var(--tg-theme-button-color, #007aff) !important;
+  border: 1px solid var(--tg-theme-button-color, #007aff) !important;
+}
+
+.tgui-switch::before {
+  background-color: var(--tg-theme-bg-color, #ffffff) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Alternative approach using CSS custom properties */
+.ai-toggle-label .tgui-switch,
+.checkbox-label .tgui-switch {
+  background: var(--tg-theme-hint-color, #8e8e93) !important;
+  border: 1px solid var(--tg-theme-separator-color, rgba(60, 60, 67, 0.36)) !important;
+  min-width: 48px;
+  min-height: 24px;
+}
+
+.ai-toggle-label .tgui-switch[data-checked="true"],
+.checkbox-label .tgui-switch[data-checked="true"] {
+  background: var(--tg-theme-button-color, #007aff) !important;
+  border: 1px solid var(--tg-theme-button-color, #007aff) !important;
+}
+
+/* Ensure switch thumb is visible */
+.ai-toggle-label .tgui-switch::before,
+.checkbox-label .tgui-switch::before {
+  background: var(--tg-theme-bg-color, #ffffff) !important;
+  border: 1px solid var(--tg-theme-separator-color, rgba(0, 0, 0, 0.1)) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Dark mode specific overrides */
+@media (prefers-color-scheme: dark) {
+  .tgui-switch {
+    background-color: #48484a !important;
+    border: 1px solid #636366 !important;
+  }
+  
+  .tgui-switch[data-checked="true"] {
+    background-color: #0a84ff !important;
+    border: 1px solid #0a84ff !important;
+  }
+  
+  .tgui-switch::before {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
 .form-textarea {
   resize: vertical;
   min-height: 80px;
@@ -142,11 +259,13 @@
   background: var(--tg-theme-bg-color, #ffffff);
   color: var(--tg-theme-text-color, #000);
   transition: border-color 0.2s ease;
+  box-sizing: border-box;
 }
 
 .option-input:focus {
   outline: none;
   border-color: var(--tg-theme-button-color, #007aff);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
 }
 
 .remove-option-btn {
@@ -236,6 +355,202 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* AI Options Generation Styles */
+.ai-options-group {
+  border: 2px solid rgba(0, 122, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  background: rgba(0, 122, 255, 0.02);
+}
+
+.options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ai-toggle-container {
+  display: flex;
+  align-items: center;
+}
+
+.ai-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.ai-toggle-input {
+  display: none;
+}
+
+/* Custom Toggle Switch Styles - Visible in Dark Mode */
+.ai-toggle-input,
+.gasless-toggle-input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.ai-toggle-slider,
+.gasless-toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  background: #48484a;
+  border: 1px solid #636366;
+  border-radius: 24px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  margin-right: 12px;
+}
+
+.ai-toggle-slider::before,
+.gasless-toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.ai-toggle-input:checked + .ai-toggle-slider,
+.gasless-toggle-input:checked + .gasless-toggle-slider {
+  background: #0a84ff;
+  border: 1px solid #0a84ff;
+}
+
+.ai-toggle-input:checked + .ai-toggle-slider::before,
+.gasless-toggle-input:checked + .gasless-toggle-slider::before {
+  transform: translateX(22px);
+}
+
+/* Light mode fallback */
+@media (prefers-color-scheme: light) {
+  .ai-toggle-slider,
+  .gasless-toggle-slider {
+    background: #e9e9eb;
+    border: 1px solid #c7c7cc;
+  }
+  
+  .ai-toggle-input:checked + .ai-toggle-slider,
+  .gasless-toggle-input:checked + .gasless-toggle-slider {
+    background: #007aff;
+    border: 1px solid #007aff;
+  }
+}
+
+/* Dark mode improvements for custom toggle */
+@media (prefers-color-scheme: dark) {
+  .ai-toggle-slider {
+    background: #48484a;
+    border: 1px solid #636366;
+  }
+  
+  .ai-toggle-input:checked + .ai-toggle-slider {
+    background: #0a84ff;
+    border: 1px solid #0a84ff;
+  }
+  
+  .ai-toggle-slider::before {
+    background: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+.ai-toggle-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #000);
+}
+
+.ai-generation-section {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(52, 199, 89, 0.1));
+  border: 2px solid rgba(0, 122, 255, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.ai-description {
+  font-size: 14px;
+  color: var(--tg-theme-hint-color, #666);
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.ai-generate-btn {
+  background: linear-gradient(135deg, var(--tg-theme-button-color, #007aff), #34C759);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+  min-width: 200px;
+}
+
+.ai-generate-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+}
+
+.ai-generate-btn:disabled {
+  background: var(--tg-theme-hint-color, #ccc);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ai-generate-btn.loading {
+  cursor: wait;
+  opacity: 0.9;
+}
+
+.ai-generating-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tg-theme-button-color, #007aff);
 }
 
 
@@ -435,11 +750,27 @@
 .gasless-responses-toggle {
   background: linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%);
   border-color: #4CAF50;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
 }
 
 .gasless-responses-toggle:hover {
   border-color: #2e7d32;
   background: linear-gradient(135deg, #d4edda 0%, #e7f3ff 100%);
+}
+
+/* Dark mode adjustments for gasless toggle container */
+@media (prefers-color-scheme: dark) {
+  .gasless-responses-toggle {
+    background: rgba(52, 199, 89, 0.1);
+    border-color: #34c759;
+  }
+  
+  .gasless-responses-toggle:hover {
+    background: rgba(52, 199, 89, 0.15);
+    border-color: #30d158;
+  }
 }
 
 .gasless-info-text {
@@ -525,4 +856,160 @@
   color: #2e7d32;
   font-weight: 500;
   line-height: 1.3;
+}
+
+/* Universal Switch Container for Light/Dark Mode Visibility */
+.switch-container {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 8px 0;
+  transition: all 0.3s ease;
+}
+
+/* Light mode adjustments */
+@media (prefers-color-scheme: light) {
+  .switch-container {
+    background: #bcacea;
+    border: 1px solid #e9ecef;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .switch-container {
+    background: #2c2c2e;
+    border: 1px solid #48484a;
+    color: #ffffff;
+  }
+}
+
+/* Hover effects */
+.switch-container:hover {
+  background: #f0f0f0;
+  border: 1px solid #d0d0d0;
+}
+
+@media (prefers-color-scheme: light) {
+  .switch-container:hover {
+    background: #cdcaf2;
+    border: 1px solid #d0d0d0;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .switch-container:hover {
+    background: #3a3a3c;
+    border: 1px solid #5a5a5c;
+  }
+}
+
+/* Specific container styling */
+.gasless-switch-container {
+  background: #e8f5e8;
+  border: 1px solid #a8d5a8;
+}
+
+.gasless-switch-container:hover {
+  background: #d4eedc;
+  border: 1px solid #85c985;
+}
+
+@media (prefers-color-scheme: dark) {
+  .gasless-switch-container {
+    background: #1a3d1a;
+    border: 1px solid #2d5a2d;
+  }
+  
+  .gasless-switch-container:hover {
+    background: #1f4a1f;
+    border: 1px solid #356b35;
+  }
+}
+
+/* Switch element overrides within containers */
+.switch-container [role="switch"] {
+  background-color: #e0e0e0 !important;
+  border: 2px solid #bbb !important;
+}
+
+.switch-container [role="switch"][aria-checked="true"] {
+  background-color: #007aff !important;
+  border: 2px solid #007aff !important;
+}
+
+/* Light mode - better contrast */
+@media (prefers-color-scheme: light) {
+  .switch-container [role="switch"] {
+    background-color: #d1d1d6 !important;
+    border: 2px solid #8e8e93 !important;
+  }
+  
+  .switch-container [role="switch"][aria-checked="true"] {
+    background-color: #007aff !important;
+    border: 2px solid #007aff !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .switch-container [role="switch"] {
+    background-color: #48484a !important;
+    border: 2px solid #636366 !important;
+  }
+  
+  .switch-container [role="switch"][aria-checked="true"] {
+    background-color: #0a84ff !important;
+    border: 2px solid #0a84ff !important;
+  }
+}
+
+/* Label adjustments for containers */
+.switch-container .ai-toggle-label,
+.switch-container .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  margin: 0;
+  width: 100%;
+}
+
+.switch-container .gasless-responses-toggle {
+  width: 100%;
+}
+
+/* Text color fixes for containers */
+.switch-container .ai-toggle-text,
+.switch-container span {
+  color: #000000;
+}
+
+@media (prefers-color-scheme: light) {
+  .switch-container .ai-toggle-text,
+  .switch-container span {
+    color: #000000;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .switch-container .ai-toggle-text,
+  .switch-container span {
+    color: #ffffff;
+  }
+}
+
+/* Gasless container text colors */
+.gasless-switch-container .ai-toggle-text,
+.gasless-switch-container span {
+  color: #2d5a2d;
+}
+
+@media (prefers-color-scheme: dark) {
+  .gasless-switch-container .ai-toggle-text,
+  .gasless-switch-container span {
+    color: #a8d5a8;
+  }
 }
