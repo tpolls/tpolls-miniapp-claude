@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TonConnectUIProvider, useTonConnectUI } from '@tonconnect/ui-react';
 import Welcome from './components/Welcome';
 import MainApp from './components/MainApp';
-import GettingStarted from './components/GettingStarted';
+import OnboardingCarousel from './components/OnboardingCarousel';
 import AnimationModeSelection from './components/AnimationModeSelection';
 import RoleSelection from './components/RoleSelection';
 import PollCreation from './components/PollCreation';
@@ -162,7 +162,7 @@ function App() {
   return (
     <div className="app">
       {currentPage === 'getting-started' && (
-        <GettingStarted onContinue={handleContinue} />
+        <OnboardingCarousel onComplete={handleContinue} />
       )}
       {currentPage === 'animation-mode-selection' && (
         <AnimationModeSelection onModeSelect={handleAnimationModeSelect} onBack={handleBackToGettingStarted} />
@@ -197,9 +197,6 @@ function App() {
       )}
       {currentPage === 'poll-administration' && isConnected && (
         <PollAdministration onBack={handleBottomNavigation} />
-      )}
-      {currentPage === 'telegram-ui-examples' && isConnected && (
-        <TelegramUIExamples onBack={handleBottomNavigation} />
       )}
       {currentPage === 'telegram-ui-poll-creation' && isConnected && (
         <TelegramUIPollCreation onPollCreate={handlePollCreate} onBack={handleBottomNavigation} />

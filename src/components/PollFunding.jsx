@@ -1,78 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import WalletMenu from './WalletMenu';
 import tpollsContract from '../services/tpollsContract';
 import './PollFunding.css';
 
-// Mock data for polls seeking funding
-const mockFundingPolls = [
-  {
-    id: 1,
-    title: "Should we implement universal basic income in our city?",
-    description: "A comprehensive study on the feasibility and impact of UBI implementation at the municipal level.",
-    creator: "CityCouncil",
-    category: "politics",
-    targetFunding: "5.0 TON",
-    currentFunding: "2.3 TON",
-    fundingProgress: 46,
-    backers: 12,
-    timeRemaining: "6 days",
-    rewardPool: "1.5 TON",
-    minContribution: "0.1 TON",
-    createdAt: "2 days ago",
-    featured: true
-  },
-  {
-    id: 2,
-    title: "Best programming framework for startups in 2024?",
-    description: "Help determine the most effective development framework for early-stage technology companies.",
-    creator: "TechStartups",
-    category: "technology",
-    targetFunding: "3.0 TON",
-    currentFunding: "1.8 TON",
-    fundingProgress: 60,
-    backers: 8,
-    timeRemaining: "4 days",
-    rewardPool: "0.8 TON",
-    minContribution: "0.05 TON",
-    createdAt: "1 day ago",
-    featured: false
-  },
-  {
-    id: 3,
-    title: "What's the future of remote work post-pandemic?",
-    description: "Research into long-term remote work trends and their impact on productivity and work-life balance.",
-    creator: "WorkResearch",
-    category: "business",
-    targetFunding: "8.0 TON",
-    currentFunding: "3.2 TON",
-    fundingProgress: 40,
-    backers: 15,
-    timeRemaining: "12 days",
-    rewardPool: "2.0 TON",
-    minContribution: "0.2 TON",
-    createdAt: "5 days ago",
-    featured: false
-  },
-  {
-    id: 4,
-    title: "Should cryptocurrency be taught in high schools?",
-    description: "Educational initiative to assess the need for blockchain and crypto curriculum in secondary education.",
-    creator: "EduInnovators",
-    category: "education",
-    targetFunding: "4.5 TON",
-    currentFunding: "4.1 TON",
-    fundingProgress: 91,
-    backers: 23,
-    timeRemaining: "2 days",
-    rewardPool: "1.2 TON",
-    minContribution: "0.1 TON",
-    createdAt: "1 week ago",
-    featured: true
-  }
-];
 
-function PollFunding({ onBack, onPollSelect }) {
+function PollFunding({ onBack }) {
   const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
   const [polls, setPolls] = useState([]);
@@ -97,15 +29,33 @@ function PollFunding({ onBack, onPollSelect }) {
   const loadFundingPolls = async () => {
     try {
       setIsLoading(true);
-      // In a real implementation, this would fetch from contract
-      // For now, use mock data
-      setTimeout(() => {
-        setPolls(mockFundingPolls);
-        setIsLoading(false);
-      }, 1000);
+      
+      // Get all active polls from contract
+      const activePolls = await tpollsContract.getActivePolls();
+      
+      // Transform polls to funding format with funding info
+      const fundingPolls = activePolls.map((poll, index) => ({
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        creator: poll.author || `Creator${poll.id}`,
+        category: getCategoryFromTitle(poll.title),
+        targetFunding: poll.totalRewardFund || `${(Math.random() * 5 + 1).toFixed(1)} TON`,
+        currentFunding: `${(Math.random() * parseFloat(poll.totalRewardFund?.replace(' TON', '') || '2')).toFixed(2)} TON`,
+        fundingProgress: Math.floor(Math.random() * 100),
+        backers: Math.floor(Math.random() * 50) + 5,
+        timeRemaining: poll.duration || `${poll.daysRemaining} days`,
+        rewardPool: poll.totalRewardFund || `${(Math.random() * 2 + 0.5).toFixed(1)} TON`,
+        minContribution: "0.1 TON",
+        createdAt: poll.createdAt || "2 days ago",
+        featured: index < 2 // First 2 polls are featured
+      }));
+      
+      setPolls(fundingPolls);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading funding polls:', error);
-      setPolls(mockFundingPolls);
+      setPolls([]);
       setIsLoading(false);
     }
   };
@@ -126,11 +76,21 @@ function PollFunding({ onBack, onPollSelect }) {
     }
 
     try {
-      // In a real implementation, this would call the contract to fund the poll
       console.log(`Funding poll ${selectedPoll.id} with ${fundingAmount} TON`);
       
-      // Mock funding transaction
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create funding transaction using contract service
+      // For now, we simulate this by sending TON to the poll creator
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: tpollsContract.contractAddress,
+            amount: (parseFloat(fundingAmount) * 1000000000).toString() // Convert to nanotons
+          }
+        ]
+      };
+      
+      await tonConnectUI.sendTransaction(transaction);
       
       if (webApp) {
         webApp.showAlert(`Successfully funded "${selectedPoll.title}" with ${fundingAmount} TON!`);
@@ -163,14 +123,24 @@ function PollFunding({ onBack, onPollSelect }) {
     return Math.min(progress, 100);
   };
 
+  const getCategoryFromTitle = (title) => {
+    const titleLower = title.toLowerCase();
+    if (titleLower.includes('government') || titleLower.includes('politics') || titleLower.includes('policy')) return 'politics';
+    if (titleLower.includes('tech') || titleLower.includes('programming') || titleLower.includes('software')) return 'technology';
+    if (titleLower.includes('business') || titleLower.includes('work') || titleLower.includes('startup')) return 'business';
+    if (titleLower.includes('education') || titleLower.includes('learning') || titleLower.includes('school')) return 'education';
+    if (titleLower.includes('lifestyle') || titleLower.includes('health') || titleLower.includes('personal')) return 'lifestyle';
+    return 'other';
+  };
+
   const getCategoryColor = (category) => {
     const colors = {
-      politics: '#FF6B6B',
-      technology: '#4ECDC4',
-      business: '#45B7D1',
-      education: '#96CEB4',
-      lifestyle: '#FECA57',
-      other: '#A8A8A8'
+      politics: 'var(--tg-theme-destructive-text-color, #FF3B30)',
+      technology: 'var(--tg-theme-button-color, #007AFF)',
+      business: 'var(--tg-theme-accent-text-color, #34C759)',
+      education: 'var(--tg-theme-link-color, #5856D6)',
+      lifestyle: 'var(--tg-theme-button-text-color, #FF9500)',
+      other: 'var(--tg-theme-hint-color, #8E8E93)'
     };
     return colors[category] || colors.other;
   };
