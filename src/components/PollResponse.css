@@ -162,7 +162,7 @@
 .poll-response-actions {
   display: flex;
   gap: 16px;
-  padding: 20px 0;
+  padding: 20px 0 60px; /* Increased bottom padding for bottom navigation */
   justify-content: center;
 }
 

@@ -69,11 +69,19 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
           ? 'Vote submitted successfully (gasless)! No transaction fees charged. You may receive rewards after the poll ends.'
           : 'Vote submitted successfully! You may receive rewards after the poll ends.';
         
-        alert(successMessage);
-        
-        if (onSubmitResponse) {
-          onSubmitResponse(response);
+        // Show brief success message, then transition to home page
+        if (webApp) {
+          webApp.showAlert(successMessage);
+        } else {
+          alert(successMessage);
         }
+        
+        // Transition to home page after brief delay
+        setTimeout(() => {
+          if (onSubmitResponse) {
+            onSubmitResponse(response);
+          }
+        }, 1500);
       }
     } catch (error) {
       console.error('Error submitting vote:', error);
@@ -120,7 +128,7 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
           </div>
           
           <div className="poll-question">
-            <h2>{poll.question}</h2>
+            <h2>{poll.title}</h2>
           </div>
 
           <div className="poll-options">

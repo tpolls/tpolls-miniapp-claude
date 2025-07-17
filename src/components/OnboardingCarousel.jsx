@@ -3,13 +3,16 @@ import './OnboardingCarousel.css';
 import slide1CharImage from '../assets/slide1_char.png';
 import slide2CharImage from '../assets/slide2_char.png';
 import slide3CharImage from '../assets/slide3_char.png';
+import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 
 function OnboardingCarousel({ onComplete }) {
+  const [tonConnectUI] = useTonConnectUI();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [webApp, setWebApp] = useState(null);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isConnected, setIsConnected] = useState(tonConnectUI.connected);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -19,6 +22,13 @@ function OnboardingCarousel({ onComplete }) {
       tg.expand();
     }
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = tonConnectUI.onStatusChange((walletInfo) => {
+      setIsConnected(!!walletInfo);
+    });
+    return () => unsubscribe();
+  }, [tonConnectUI]);
 
   const slides = [
     {
@@ -201,9 +211,13 @@ function OnboardingCarousel({ onComplete }) {
           </div>
         ) : (
           <div className="get-started-section">
-            <button className="get-started-btn" onClick={handleGetStarted}>
-              Get Started
-            </button>
+            {!isConnected ? (
+              <TonConnectButton />
+            ) : (
+              <button className="get-started-btn" onClick={handleGetStarted}>
+                Get Started
+              </button>
+            )}
           </div>
         )}
       </div>
