@@ -254,7 +254,7 @@ function App() {
         <TelegramUIPollCreation onPollCreate={handlePollCreate} onBack={handleBottomNavigation} />
       )}
       
-      {isConnected && !['onboarding', 'getting-started-wallet', 'animation-mode-selection', 'role-selection', 'poll-creation', 'poll-response', 'welcome'].includes(currentPage) && (
+      {isConnected && !['onboarding', 'getting-started-wallet', 'animation-mode-selection', 'welcome'].includes(currentPage) && (
         <BottomNavigation 
           currentPage={currentPage} 
           onNavigate={handleBottomNavigation} 

@@ -1,4 +1,4 @@
-import { toNano, Address } from '@ton/core';
+import { toNano, Address, Cell, beginCell } from '@ton/core';
 import { TonClient } from '@ton/ton';
 import gaslessVotingService from './gaslessVoting';
 
@@ -9,7 +9,7 @@ import gaslessVotingService from './gaslessVoting';
 class TPollsContract {
   constructor() {
     // Use the deployed contract address from deployment.json
-    this.contractAddress = import.meta.env.VITE_TPOLLS_CONTRACT_ADDRESS || 'EQCZ2buqvFaweGDUGbUk8Aph2vuhDFxPS3WoMkEuQoCEKj5j';
+    this.contractAddress = import.meta.env.VITE_TPOLLS_CONTRACT_ADDRESS || 'EQD33qSiwBmeW455-zQsrxdHUlpiuO3pnkO0SzBCjPAFvOAe';
     this.tonConnectUI = null;
     this.client = null;
     this.managerAddresses = {
@@ -22,6 +22,16 @@ class TPollsContract {
     // Log which contract address is being used
     const usingDefault = !import.meta.env.VITE_TPOLLS_CONTRACT_ADDRESS;
     console.log(`TPollsContract initialized with address: ${this.contractAddress}${usingDefault ? ' (default)' : ' (from deployment.json)'}`);
+    // Determine TON network and endpoint
+    const network = import.meta.env.VITE_TON_NETWORK || 'testnet';
+    this.toncenterEndpoint = import.meta.env.VITE_TONCENTER_ENDPOINT ||
+      (network === 'testnet'
+        ? 'https://testnet.toncenter.com/api/v2/jsonRPC'
+        : 'https://toncenter.com/api/v2/jsonRPC');
+    this.toncenterApiKey = import.meta.env.VITE_TONCENTER_API_KEY;
+    if (!this.toncenterApiKey) {
+      console.warn('TON Center API key is missing! Set VITE_TONCENTER_API_KEY in your .env file.');
+    }
   }
 
   /**
@@ -33,10 +43,10 @@ class TPollsContract {
     // Initialize TonClient for contract interactions
     try {
       this.client = new TonClient({
-        endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-        apiKey: import.meta.env.VITE_TONCENTER_API_KEY // Optional API key for higher rate limits
+        endpoint: this.toncenterEndpoint,
+        apiKey: this.toncenterApiKey
       });
-      console.log('TonClient initialized successfully');
+      console.log('TonClient initialized successfully with endpoint:', this.toncenterEndpoint);
       
       // Initialize manager contract addresses
       await this._initializeManagerAddresses();
@@ -48,36 +58,219 @@ class TPollsContract {
   }
 
   /**
+   * Check if the contract is deployed and initialized
+   */
+  async getContractStatus() {
+    console.log('getContractStatus', this.client);
+    try {
+      if (!this.client) {
+        return { deployed: false, initialized: false, error: 'TonClient not available' };
+      }
+
+      const contractAddress = Address.parse(this.contractAddress);
+      console.log('contractAddress', contractAddress);
+
+      // Check if contract is deployed
+      let contractState;
+      try {
+        contractState = await this.client.getContractState(contractAddress);
+        console.log('contractState', contractState);
+      } catch (error) {
+        console.log('error', error)
+        return { deployed: false, initialized: false, error: 'Contract not deployed' };
+      }
+      
+      if (contractState.state !== 'active') {
+        console.log('contractState.state', contractState.state)
+        return { deployed: true, initialized: false, error: `Contract state: ${contractState.state}` };
+      }
+      
+      // Check if contract is initialized
+      try {
+        const isInitializedResult = await this.client.runMethod(contractAddress, 'isInitialized');
+        console.log('isInitializedResult', isInitializedResult)
+        const isInitialized = isInitializedResult.stack?.items[0]?.value;
+        console.log('isInitialized', isInitialized)
+        return { 
+          deployed: true, 
+          initialized: isInitialized === -1n, 
+          managersDeployed: isInitialized ? Object.values(this.managerAddresses).some(addr => addr !== null) : false
+        };
+      } catch (error) {
+        return { deployed: true, initialized: false, error: `Cannot check initialization: ${error.message}` };
+      }
+    } catch (error) {
+      return { deployed: false, initialized: false, error: error.message };
+    }
+  }
+
+  /**
+   * Initialize the main contract with manager contracts
+   */
+  async initializeContract() {
+    if (!this.tonConnectUI || !this.tonConnectUI.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      // Check current status first
+      const status = await this.getContractStatus();
+      console.log('Contract status::initializeContract:', status);
+      
+      if (!status.deployed) {
+        throw new Error('Contract is not deployed. Please deploy the contract first.');
+      }
+      
+      if (status.initialized) {
+        console.log('Contract already initialized');
+        await this._initializeManagerAddresses();
+        return {
+          success: true,
+          message: 'Contract was already initialized'
+        };
+      }
+
+      // Send InitializeManagers message to the main contract
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: this.contractAddress,
+            amount: toNano('0.5').toString(), // Need enough TON for deploying 4 contracts
+            // Note: In production, you'd need to build the proper message body
+            // For now, this is a placeholder
+          }
+        ]
+      };
+
+      const result = await this.tonConnectUI.sendTransaction(transaction);
+      
+      // Wait a bit for deployment to complete
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      
+      // Re-initialize manager addresses
+      await this._initializeManagerAddresses();
+      
+      return {
+        success: true,
+        transactionHash: result.boc,
+        message: 'Contract initialized successfully'
+      };
+    } catch (error) {
+      console.error('Error initializing contract:', error);
+      throw new Error(`Failed to initialize contract: ${error.message}`);
+    }
+  }
+
+  /**
    * Initialize manager contract addresses from main contract
    */
   async _initializeManagerAddresses() {
+    console.log('_initializeManagerAddresses')
     try {
       if (!this.client) return;
 
       const contractAddress = Address.parse(this.contractAddress);
+      console.log('_initializeManagerAddresses::contractAddress', contractAddress)
       
-      // Get manager addresses from main contract
-      const pollManagerResult = await this.client.runMethod(contractAddress, 'getGetPollManager');
-      const responseManagerResult = await this.client.runMethod(contractAddress, 'getGetResponseManager');
-      const fundManagerResult = await this.client.runMethod(contractAddress, 'getGetFundManager');
-      const optionsStorageResult = await this.client.runMethod(contractAddress, 'getGetOptionsStorage');
+      // First check if the contract exists and is deployed
+      let contractState;
+      try {
+        contractState = await this.client.getContractState(contractAddress);
+        console.log('_initializeManagerAddresses::contractState', contractState)
+      } catch (error) {
+        console.warn('Contract not deployed or not accessible:', error);
+        return;
+      }
+      
+      if (contractState.state !== 'active') {
+        console.warn('Contract is not active. State:', contractState.state);
+        return;
+      }
+      
+      // Check if the contract is initialized
+      let isInitialized = false;
+      try {
+        const isInitializedResult = await this.client.runMethod(contractAddress, 'isInitialized');
+        console.log('_initializeManagerAddresses::isInitializedResult', isInitializedResult)
+        isInitialized = isInitializedResult.stack?.items[0]?.value;
+      } catch (error) {
+        console.warn('Could not check initialization status:', error);
+        return;
+      }
+      
+      if (!isInitialized) {
+        console.warn('Contract deployed but not initialized. Call initializeContract() first.');
+        return;
+      }
+      
+      // Get manager addresses from main contract (correct getter names)
+      try {
+        const [pollManagerResult, responseManagerResult, fundManagerResult, optionsStorageResult] = await Promise.all([
+          this.client.runMethod(contractAddress, 'getPollManager'),
+          this.client.runMethod(contractAddress, 'getResponseManager'),
+          this.client.runMethod(contractAddress, 'getFundManager'),
+          this.client.runMethod(contractAddress, 'getOptionsStorage')
+        ]);
+        console.log('pollManagerResult', pollManagerResult)
+        console.log('responseManagerResult', responseManagerResult)
+        console.log('fundManagerResult', fundManagerResult)
+        console.log('optionsStorageResult', optionsStorageResult)
 
-      if (pollManagerResult.stack?.[0]) {
-        this.managerAddresses.pollManager = pollManagerResult.stack[0].value.toString();
-      }
-      if (responseManagerResult.stack?.[0]) {
-        this.managerAddresses.responseManager = responseManagerResult.stack[0].value.toString();
-      }
-      if (fundManagerResult.stack?.[0]) {
-        this.managerAddresses.fundManager = fundManagerResult.stack[0].value.toString();
-      }
-      if (optionsStorageResult.stack?.[0]) {
-        this.managerAddresses.optionsStorage = optionsStorageResult.stack[0].value.toString();
-      }
+        // Parse Address objects correctly from returned Cell
+        if (pollManagerResult.stack?.items[0]?.cell) {
+          try {
+            const cell = pollManagerResult.stack.items[0].cell;
+            const slice = cell.beginParse();
+            const address = slice.loadAddress();
+            this.managerAddresses.pollManager = address.toString();
+            console.log('set pollManager', this.managerAddresses.pollManager);
+          } catch (e) {
+            console.warn('Failed to parse pollManager address:', e);
+          }
+        }
+        if (responseManagerResult.stack?.items[0]?.cell) {
+          try {
+            const cell = responseManagerResult.stack.items[0].cell;
+            const slice = cell.beginParse();
+            const address = slice.loadAddress();
+            this.managerAddresses.responseManager = address.toString();
+            console.log('set responseManager', this.managerAddresses.responseManager);
+          } catch (e) {
+            console.warn('Failed to parse responseManager address:', e);
+          }
+        }
+        if (fundManagerResult.stack?.items[0]?.cell) {
+          try {
+            const cell = fundManagerResult.stack.items[0].cell;
+            const slice = cell.beginParse();
+            const address = slice.loadAddress();
+            this.managerAddresses.fundManager = address.toString();
+            console.log('set fundManager', this.managerAddresses.fundManager);
+          } catch (e) {
+            console.warn('Failed to parse fundManager address:', e);
+          }
+        }
+        if (optionsStorageResult.stack?.items[0]?.cell) {
+          try {
+            const cell = optionsStorageResult.stack.items[0].cell;
+            const slice = cell.beginParse();
+            const address = slice.loadAddress();
+            this.managerAddresses.optionsStorage = address.toString();
+            console.log('set optionsStorage', this.managerAddresses.optionsStorage);
+          } catch (e) {
+            console.warn('Failed to parse optionsStorage address:', e);
+          }
+        }
 
-      console.log('Manager addresses initialized:', this.managerAddresses);
+        console.log('Manager addresses initialized:', this.managerAddresses);
+        console.log('Contract initialization status:', isInitialized);
+      } catch (error) {
+        console.warn('Failed to get manager addresses:', error);
+      }
     } catch (error) {
       console.warn('Failed to initialize manager addresses:', error);
+      console.warn('This is expected if the contract has not been deployed or initialized yet.');
     }
   }
 
@@ -93,6 +286,7 @@ class TPollsContract {
    * @returns {Promise<Object>} Transaction result
    */
   async createPoll(pollData) {
+    debugger
     if (!this.tonConnectUI || !this.tonConnectUI.connected) {
       throw new Error('Wallet not connected');
     }
@@ -116,49 +310,112 @@ class TPollsContract {
     }
 
     try {
-      // For now, we'll use a simplified approach without complex cell building
-      // In a production environment, you'd want to properly encode the message
-      
-      // Calculate total value needed (fees + funding)
-      const feeAmount = 0.01; // Reduced gas fees for testing
-      const totalValue = (parseFloat(totalFunding) + feeAmount).toFixed(3); // Fixed to 3 decimal places
+      const feeAmount = 0.01;
+      const totalValue = (parseFloat(totalFunding) + feeAmount).toFixed(3);
 
-      console.log('Debug - Poll Data:', {
-        title,
-        description,
-        options,
-        duration,
-        rewardPerVote,
-        totalFunding,
-        totalValue
-      });
+      // Build the payload for CreatePollWithFunds message
+      const cell = beginCell();
+      const titleCell = beginCell().storeStringTail(title).endCell();
+      const descCell = beginCell().storeStringTail(description).endCell();
+      cell.storeRef(titleCell);
+      cell.storeRef(descCell);
+      cell.storeUint(options.length, 32);
+      cell.storeUint(duration, 32);
+      cell.storeCoins(toNano(rewardPerVote));
+      const payload = cell.endCell().toBoc().toString('base64');
 
-      // For now, send a simple transaction without payload
-      // In production, you'd build proper BOC messages for the smart contract
-      
-      // Send transaction
+      // Send transaction to create poll
       const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+        validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
             address: this.contractAddress,
-            amount: toNano(totalValue).toString()
-            // No payload for simple transfer - will be added later when contract is ready
+            amount: toNano(totalValue).toString(),
+            payload
           }
         ]
       };
 
-      console.log('Debug - Transaction object:', JSON.stringify(transaction, null, 2));
-      console.log('Debug - Contract address:', this.contractAddress);
-      console.log('Debug - TonConnect UI connected:', this.tonConnectUI?.connected);
-      console.log('Debug - Amount in nano:', toNano(totalValue).toString());
-
       const result = await this.tonConnectUI.sendTransaction(transaction);
-      
-      // Store poll options and gasless preference off-chain
+
+      // Wait for poll creation to be processed (may need to poll or wait for confirmation in production)
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Fetch the new pollId (nextPollId - 1)
+      let pollId = null;
+      try {
+        const pollManagerAddress = Address.parse(this.managerAddresses.pollManager);
+        const nextPollIdResult = await this.client.runMethod(pollManagerAddress, 'getNextPollId');
+        let nextPollId = 0;
+        if (nextPollIdResult.stack && nextPollIdResult.stack.items.length > 0) {
+          if (nextPollIdResult.stack.items[0].cell) {
+            const cell = nextPollIdResult.stack.items[0].cell;
+            const slice = cell.beginParse();
+            nextPollId = Number(slice.loadUint(32));
+          } else {
+            nextPollId = Number(nextPollIdResult.stack.items[0].value);
+          }
+        }
+        pollId = nextPollId - 1;
+      } catch (e) {
+        console.warn('Failed to fetch new pollId:', e);
+      }
+
+      // Send poll options to PollOptionsStorage contract
+      if (pollId >=0 && this.managerAddresses.optionsStorage) {
+        const optionsStorageAddress = this.managerAddresses.optionsStorage;
+        // Send StorePollOptions message (set option count)
+        try {
+          const storeCountCell = beginCell();
+          storeCountCell.storeUint(pollId, 32);
+          storeCountCell.storeUint(options.length, 32);
+          const storeCountPayload = storeCountCell.endCell().toBoc().toString('base64');
+          const storeCountTx = {
+            validUntil: Math.floor(Date.now() / 1000) + 600,
+            messages: [
+              {
+                address: optionsStorageAddress,
+                amount: toNano('0.05').toString(),
+                payload: storeCountPayload
+              }
+            ]
+          };
+          await this.tonConnectUI.sendTransaction(storeCountTx);
+        } catch (e) {
+          console.warn('Failed to send StorePollOptions:', e);
+        }
+        // Send StoreOption message for each option
+        for (let i = 0; i < options.length; i++) {
+          try {
+            const optionCell = beginCell();
+            optionCell.storeUint(pollId, 32);
+            optionCell.storeUint(i, 32);
+            const textCell = beginCell().storeStringTail(options[i]).endCell();
+            optionCell.storeRef(textCell);
+            const optionPayload = optionCell.endCell().toBoc().toString('base64');
+            const optionTx = {
+              validUntil: Math.floor(Date.now() / 1000) + 600,
+              messages: [
+                {
+                  address: optionsStorageAddress,
+                  amount: toNano('0.05').toString(),
+                  payload: optionPayload
+                }
+              ]
+            };
+            await this.tonConnectUI.sendTransaction(optionTx);
+          } catch (e) {
+            console.warn(`Failed to send StoreOption for option ${i}:`, e);
+          }
+        }
+      } else {
+        console.warn('PollId or optionsStorage address not available, skipping on-chain option storage.');
+      }
+
+      // Store poll options and gasless preference off-chain for UI/demo
       this._storePollOptions(title, options);
       this._storePollGaslessPreference(title, pollData.enableGaslessResponses);
-      
+
       return {
         success: true,
         transactionHash: result.boc,
@@ -292,51 +549,27 @@ class TPollsContract {
    */
   async getPoll(pollId) {
     try {
-      // This would typically use TonClient to call getter methods
-      // For now, returning mock data structure that matches contract
+      // Check contract status first
+      const status = await this.getContractStatus();
       
-      // In a real implementation, you would:
-      // const client = new TonClient({ endpoint: 'https://toncenter.com/api/v2/jsonRPC' });
-      // const contract = client.open(Address.parse(this.contractAddress));
-      // const poll = await contract.getPoll(pollId);
+      if (!status.deployed) {
+        throw new Error('Contract is not deployed. Please deploy the contract first.');
+      }
       
-      // Mock poll data for demonstration
-      const pollOptions = this._getPollOptions(pollId);
-      const gaslessEnabled = this._getPollGaslessPreference(pollId);
+      if (!status.initialized) {
+        throw new Error('Contract is deployed but not initialized. Call initializeContract() first.');
+      }
       
-      const startTime = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
-      const endTime = Math.floor(Date.now() / 1000) + 82800; // 23 hours from now
-      const totalResponses = Math.floor(Math.random() * 100) + 10;
-      const totalRewardFund = `${(Math.random() * 2 + 0.1).toFixed(2)} TON`;
-      const daysRemaining = Math.floor((endTime - Math.floor(Date.now() / 1000)) / 86400);
-
-      // Generate more realistic poll titles
-      const pollTitles = [
-        'What\'s your favorite programming language?',
-        'Which blockchain has the most potential?',
-        'Best mobile app development framework?',
-        'Future of artificial intelligence?',
-        'Most important tech trend in 2025?'
-      ];
+      if (!this.client) {
+        throw new Error('TonClient not available. Check your network connection.');
+      }
       
-      return {
-        id: pollId,
-        creator: 'EQDxxx...', // Would come from contract
-        title: pollTitles[pollId - 1] || `Poll ${pollId}`, // Would come from contract
-        description: `Description for poll ${pollId}`, // Would come from contract
-        options: pollOptions || ['Option 1', 'Option 2', 'Option 3'],
-        optionCount: pollOptions?.length || 3,
-        startTime,
-        endTime,
-        isActive: true,
-        totalVotes: totalResponses, // Keep for backward compatibility
-        totalResponses, // New field for PollSelection
-        totalRewardFund, // New field for PollSelection
-        daysRemaining, // New field for PollSelection
-        duration: daysRemaining > 0 ? `${daysRemaining + 1} days` : 'Ended', // New field for PollSelection
-        rewardPerVote: '0.01',
-        gaslessEnabled: gaslessEnabled !== null ? gaslessEnabled : true // Default to gasless enabled
-      };
+      if (!this.managerAddresses.pollManager) {
+        throw new Error('PollManager address not available. Contract may not be properly initialized.');
+      }
+      
+      // Get poll data from contract
+      return await this.getPollFromContract(pollId);
     } catch (error) {
       console.error('Error getting poll:', error);
       throw new Error(`Failed to get poll: ${error.message}`);
@@ -349,21 +582,45 @@ class TPollsContract {
    */
   async getActivePolls() {
     try {
-      if (!this.client || !this.managerAddresses.pollManager) {
-        console.warn('TonClient or PollManager not available, using fallback data');
-        return await this._getFallbackPolls();
+      // Check contract status first
+      const status = await this.getContractStatus();
+      console.log('Contract status:', status);
+      if (!status.deployed) {
+        throw new Error('Contract is not deployed. Please deploy the contract first.');
+      }
+      
+      if (!status.initialized) {
+        throw new Error('Contract is deployed but not initialized. Call initializeContract() first.');
+      }
+      
+      if (!this.client) {
+        throw new Error('TonClient not available. Check your network connection.');
+      }
+      
+      console.log('this.managerAddresses', this.managerAddresses)
+      if (!this.managerAddresses.pollManager) {
+        throw new Error('PollManager address not available. Contract may not be properly initialized.');
       }
 
       // Get total polls count from PollManager
       const pollManagerAddress = Address.parse(this.managerAddresses.pollManager);
-      const pollsCountResult = await this.client.runMethod(pollManagerAddress, 'getGetPollsCount');
+      const pollsCountResult = await this.client.runMethod(pollManagerAddress, 'getPollsCount');
+      console.log('pollsCountResult', pollsCountResult)
       
-      if (!pollsCountResult.stack || pollsCountResult.stack.length === 0) {
+      if (!pollsCountResult.stack || pollsCountResult.stack.items.length === 0) {
         console.warn('No polls found on contract');
         return [];
       }
 
-      const totalPolls = Number(pollsCountResult.stack[0].value);
+      // If getPollsCount returns a Cell, parse it; otherwise, use value directly
+      let totalPolls = 0;
+      if (pollsCountResult.stack.items[0].cell) {
+        const cell = pollsCountResult.stack.items[0].cell;
+        const slice = cell.beginParse();
+        totalPolls = Number(slice.loadUint(32)); // Adjust bit size as per contract
+      } else {
+        totalPolls = Number(pollsCountResult.stack.items[0].value);
+      }
       console.log(`Found ${totalPolls} total polls on contract`);
 
       // Fetch individual polls and filter for active ones
@@ -385,10 +642,7 @@ class TPollsContract {
       
     } catch (error) {
       console.error('Error getting active polls from contract:', error);
-      
-      // Fallback to mock data if contract call fails
-      console.warn('Falling back to mock data due to contract error');
-      return await this._getFallbackPolls();
+      throw error; // Re-throw the error instead of hiding it with fallback data
     }
   }
 
@@ -471,6 +725,34 @@ class TPollsContract {
     } catch (error) {
       console.error('Error claiming reward:', error);
       throw new Error(`Failed to claim reward: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get the owner address of the main contract
+   * @returns {Promise<string|null>} Owner address (base64) or null if not available
+   */
+  async getOwnerAddress() {
+    try {
+      if (!this.client) return null;
+      const contractAddress = Address.parse(this.contractAddress);
+      const result = await this.client.runMethod(contractAddress, 'getOwner');
+      if (result.stack && result.stack.items.length > 0) {
+        if (result.stack.items[0].cell) {
+          // Address returned as Cell
+          const cell = result.stack.items[0].cell;
+          const slice = cell.beginParse();
+          const address = slice.loadAddress();
+          return address.toString();
+        } else if (result.stack.items[0].value) {
+          // Address returned as int
+          return Address.normalize(result.stack.items[0].value.toString());
+        }
+      }
+      return null;
+    } catch (error) {
+      console.warn('Failed to fetch contract owner address:', error);
+      return null;
     }
   }
 
@@ -557,32 +839,48 @@ class TPollsContract {
 
       // Get poll data from PollManager
       const pollManagerAddress = Address.parse(this.managerAddresses.pollManager);
-      const pollResult = await this.client.runMethod(pollManagerAddress, 'getGetPoll', [
+      const pollResult = await this.client.runMethod(pollManagerAddress, 'getPoll', [
         { type: 'int', value: BigInt(pollId) }
       ]);
 
-      if (!pollResult.stack || pollResult.stack.length === 0) {
+      if (!pollResult.stack || pollResult.stack.items.length === 0) {
         throw new Error(`Poll ${pollId} not found`);
       }
 
-      // Parse Poll struct from contract
-      // Based on the contract: Poll struct has: id, creator, title, description, optionCount, startTime, endTime, isActive, totalVotes, rewardPerVote
-      const pollData = pollResult.stack[0]; // This should be a Cell containing the Poll struct
-      
-      // For now, we'll need to parse the Cell structure
-      // This is a simplified approach - real implementation would parse the Cell properly
-      const poll = {
+      // Parse Poll struct from contract (assume returned as Cell)
+      let poll = {
         id: pollId,
-        title: `Poll ${pollId}`, // Will be parsed from Cell
-        description: `Description for poll ${pollId}`, // Will be parsed from Cell  
-        creator: 'EQDxxx...', // Will be parsed from Cell
+        title: `Poll ${pollId}`,
+        description: `Description for poll ${pollId}`,
+        creator: 'EQDxxx...',
         startTime: Math.floor(Date.now() / 1000) - 3600,
         endTime: Math.floor(Date.now() / 1000) + 82800,
-        isActive: true, // Will be parsed from Cell
-        totalVotes: 0, // Will be parsed from Cell
-        rewardPerVote: 1000000, // Will be parsed from Cell (in nanotons)
-        optionCount: 3 // Will be parsed from Cell
+        isActive: true,
+        totalVotes: 0,
+        rewardPerVote: 1000000,
+        optionCount: 3
       };
+      if (pollResult.stack.items[0].cell) {
+        try {
+          const cell = pollResult.stack.items[0].cell;
+          const slice = cell.beginParse();
+          // Example parsing, adjust field order/types as per your contract
+          poll.id = Number(slice.loadUint(32));
+          poll.creator = slice.loadAddress().toString();
+          // For strings, you may need to parse as a reference or bytes
+          // Placeholder: skip string parsing for now
+          poll.title = 'TODO: parse title';
+          poll.description = 'TODO: parse description';
+          poll.optionCount = Number(slice.loadUint(8));
+          poll.startTime = Number(slice.loadUint(32));
+          poll.endTime = Number(slice.loadUint(32));
+          poll.isActive = !!slice.loadUint(1);
+          poll.totalVotes = Number(slice.loadUint(32));
+          poll.rewardPerVote = Number(slice.loadUint(64));
+        } catch (e) {
+          console.warn('Failed to parse poll struct cell:', e);
+        }
+      }
 
       // Get poll options from OptionsStorage
       const options = await this._getPollOptions(pollId, poll.optionCount);
@@ -693,15 +991,19 @@ class TPollsContract {
 
       for (let i = 1; i <= optionCount; i++) {
         try {
-          const optionResult = await this.client.runMethod(optionsStorageAddress, 'getGetOption', [
+          const optionResult = await this.client.runMethod(optionsStorageAddress, 'getOption', [
             { type: 'int', value: BigInt(pollId) },
             { type: 'int', value: BigInt(i) }
           ]);
 
-          if (optionResult.stack && optionResult.stack.length > 0) {
-            // Parse option text from Cell
-            const optionText = this._parseTvmString(optionResult.stack[0]);
-            options.push(optionText);
+          if (optionResult.stack && optionResult.stack.items.length > 0) {
+            if (optionResult.stack.items[0].cell) {
+              // Parse option text from Cell (placeholder)
+              // You may need to parse as bytes or string ref
+              options.push('TODO: parse option text');
+            } else {
+              options.push(optionResult.stack.items[0].value?.toString() || `Option ${i}`);
+            }
           } else {
             options.push(`Option ${i}`);
           }
@@ -733,18 +1035,25 @@ class TPollsContract {
       }
 
       const fundManagerAddress = Address.parse(this.managerAddresses.fundManager);
-      const fundResult = await this.client.runMethod(fundManagerAddress, 'getGetFundPool', [
+      const fundResult = await this.client.runMethod(fundManagerAddress, 'getFundPool', [
         { type: 'int', value: BigInt(pollId) }
       ]);
 
-      if (fundResult.stack && fundResult.stack.length > 0) {
-        // Parse FundPool struct from Cell
-        // For now, using placeholder values - real implementation would parse the Cell
-        const totalFunds = Math.random() * 2000000000 + 100000000; // Random nanotons
-        return {
-          totalFunds: `${(totalFunds / 1000000000).toFixed(3)} TON`,
-          rewardPerVote: 0.001
-        };
+      if (fundResult.stack && fundResult.stack.items.length > 0) {
+        if (fundResult.stack.items[0].cell) {
+          // Parse FundPool struct from Cell (placeholder)
+          // You may need to parse fields as per your contract
+          return {
+            totalFunds: 'TODO: parse totalFunds',
+            rewardPerVote: 0.001
+          };
+        } else {
+          // Fallback: use value if available
+          return {
+            totalFunds: fundResult.stack.items[0].value?.toString() || '0.000 TON',
+            rewardPerVote: 0.001
+          };
+        }
       }
 
       return {
@@ -772,12 +1081,18 @@ class TPollsContract {
       }
 
       const responseManagerAddress = Address.parse(this.managerAddresses.responseManager);
-      const votesResult = await this.client.runMethod(responseManagerAddress, 'getGetTotalPollVotes', [
+      const votesResult = await this.client.runMethod(responseManagerAddress, 'getTotalPollVotes', [
         { type: 'int', value: BigInt(pollId) }
       ]);
 
-      if (votesResult.stack && votesResult.stack.length > 0) {
-        return Number(votesResult.stack[0].value);
+      if (votesResult.stack && votesResult.stack.items.length > 0) {
+        if (votesResult.stack.items[0].cell) {
+          const cell = votesResult.stack.items[0].cell;
+          const slice = cell.beginParse();
+          return Number(slice.loadUint(32)); // Adjust bit size as per contract
+        } else {
+          return Number(votesResult.stack.items[0].value);
+        }
       }
 
       return 0;
