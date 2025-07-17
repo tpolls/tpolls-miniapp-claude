@@ -4,6 +4,7 @@ import { getAnimationMode, setAnimationMode } from '../utils/animationMode';
 import { clearUserHistory } from '../utils/userHistory';
 import WalletMenu from './WalletMenu';
 import './UserSettings.css';
+import { tpollsContract } from '../services/tpollsContract';
 
 function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
   const [tonConnectUI] = useTonConnectUI();
@@ -11,6 +12,12 @@ function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
   const [currentAnimationMode, setCurrentAnimationMode] = useState('static');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [dialogType, setDialogType] = useState('');
+
+  // --- Contract Initializer State ---
+  const [contractStatus, setContractStatus] = useState(null);
+  const [initLoading, setInitLoading] = useState(false);
+  const [initResult, setInitResult] = useState(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -24,6 +31,24 @@ function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
     setCurrentAnimationMode(getAnimationMode());
   }, []);
 
+  useEffect(() => {
+    const fetchStatusAndOwner = async () => {
+      const s = await tpollsContract.getContractStatus();
+      console.log('s', s);
+      setContractStatus(s);
+      const ownerAddr = await tpollsContract.getOwnerAddress();
+      console.log('ownerAddr', ownerAddr);
+      const userAddr = tonConnectUI?.account?.address;
+      console.log('userAddr', userAddr);
+      setIsOwner(
+        ownerAddr && userAddr &&
+        ownerAddr.replace(/-/g, '').toLowerCase() === userAddr.replace(/-/g, '').toLowerCase()
+      );
+    };
+    fetchStatusAndOwner();
+  }, [tonConnectUI?.account?.address]);
+
+  console.log('isOwner', isOwner);
   const handleAnimationModeChange = (mode) => {
     if (webApp) {
       webApp.HapticFeedback.impactOccurred('light');
@@ -67,6 +92,20 @@ function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
     if (onManagePolls) {
       onManagePolls();
     }
+  };
+
+  const handleInitializeContract = async () => {
+    setInitLoading(true);
+    setInitResult(null);
+    try {
+      const result = await tpollsContract.initializeContract();
+      setInitResult({ success: true, message: result.message || 'Initialized!' });
+      const s = await tpollsContract.getContractStatus();
+      setContractStatus(s);
+    } catch (error) {
+      setInitResult({ success: false, message: error.message });
+    }
+    setInitLoading(false);
   };
 
   const handleConfirmAction = () => {
@@ -228,6 +267,44 @@ function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
           <span className="card-label">Disconnect</span>
         </div>
       </div>
+
+      {/* Contract Initializer UI - only for contract owner */}
+      <div style={{ border: '1px solid #eee', padding: 16, borderRadius: 8, margin: 16 }}>
+        <h3>Contract Initialization</h3>
+        <div>
+          <strong>Status:</strong>{' '}
+          {contractStatus
+            ? contractStatus.deployed
+              ? contractStatus.initialized
+                ? '✅ Initialized'
+                : '⚠️ Not initialized'
+              : '❌ Not deployed'
+            : 'Loading...'}
+        </div>
+        {contractStatus && contractStatus.error && (
+          <div style={{ color: 'red', marginTop: 8 }}>{contractStatus.error}</div>
+        )}
+        {/* Only show the button if not initialized */}
+        {contractStatus && contractStatus.deployed && !contractStatus.initialized ? (
+          <button
+            onClick={handleInitializeContract}
+            disabled={initLoading}
+            style={{ marginTop: 12 }}
+          >
+            {initLoading ? 'Initializing...' : 'Initialize Contract'}
+          </button>
+        ) : contractStatus && contractStatus.initialized ? (
+          <div style={{ color: 'green', marginTop: 12 }}>
+            Contract is already initialized.
+          </div>
+        ) : null}
+        {initResult && (
+          <div style={{ color: initResult.success ? 'green' : 'red', marginTop: 8 }}>
+            {initResult.message}
+          </div>
+        )}
+      </div>
+
 
       {showConfirmDialog && (
         <div className="confirm-dialog-overlay">

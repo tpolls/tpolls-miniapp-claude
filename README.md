@@ -131,7 +131,7 @@ Create a `.env` file in the root directory for environment-specific configuratio
 
 ```env
 # TON Smart Contract Address (required)
-REACT_APP_TPOLLS_CONTRACT_ADDRESS=EQDzYUsVz1PZ4mCOFHYdchV0J0Xs0Qz9DEx7nEMqGJ_OsZ30
+VITE_TPOLLS_CONTRACT_ADDRESS=EQDzYUsVz1PZ4mCOFHYdchV0J0Xs0Qz9DEx7nEMqGJ_OsZ30
 
 # tPolls API Backend URL (optional)
 VITE_DPOLLS_API=http://localhost:3001
