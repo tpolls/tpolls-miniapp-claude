@@ -3,6 +3,7 @@ import { TonConnectUIProvider, useTonConnectUI } from '@tonconnect/ui-react';
 import Welcome from './components/Welcome';
 import MainApp from './components/MainApp';
 import OnboardingCarousel from './components/OnboardingCarousel';
+import GettingStarted from './components/GettingStarted';
 import AnimationModeSelection from './components/AnimationModeSelection';
 import RoleSelection from './components/RoleSelection';
 import PollCreation from './components/PollCreation';
@@ -15,7 +16,7 @@ import PollAdministration from './components/PollAdministration';
 import BottomNavigation from './components/BottomNavigation';
 import TelegramUIExamples from './components/examples/TelegramUIExamples';
 import TelegramUIPollCreation from './components/TelegramUIPollCreation';
-import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted } from './utils/userHistory';
+import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted, resetOnboarding } from './utils/userHistory';
 import { getAnimationMode } from './utils/animationMode';
 import './components/Welcome.css';
 import './components/MainApp.css';
@@ -49,6 +50,28 @@ function App() {
     window.navigateToTelegramUIPollCreation = () => setCurrentPage('telegram-ui-poll-creation');
     window.navigateToPollAdmin = () => setCurrentPage('poll-administration');
     
+    // Check initial wallet connection state
+    if (tonConnectUI.account) {
+      const address = tonConnectUI.account.address;
+      setWalletAddress(address);
+      setIsConnected(true);
+      
+      // Initialize user history if new user
+      initializeUserHistory(address);
+      
+      // Check if user has previous interactions
+      if (hasUserInteracted(address)) {
+        // Returning user - go to dashboard
+        setCurrentPage('main');
+      } else {
+        // New user - go to onboarding
+        setCurrentPage('onboarding');
+      }
+    } else {
+      // No wallet connected - show main page with connection option
+      setCurrentPage('main');
+    }
+    
     const unsubscribe = tonConnectUI.onStatusChange((walletInfo) => {
       setIsConnected(!!walletInfo);
       
@@ -65,11 +88,11 @@ function App() {
           setCurrentPage('main');
         } else {
           // New user - go to onboarding
-          setCurrentPage('getting-started');
+          setCurrentPage('onboarding');
         }
       } else {
         setWalletAddress(null);
-        setCurrentPage('getting-started');
+        setCurrentPage('main');
       }
     });
 
@@ -81,10 +104,11 @@ function App() {
   };
 
   const handleContinue = () => {
-    // Mark that user has started the onboarding process
-    if (walletAddress) {
-      markOnboardingCompleted(walletAddress);
-    }
+    // User starts onboarding process, continue to welcome page
+    setCurrentPage('role-selection');
+  };
+
+  const handleGettingStartedContinue = () => {
     setCurrentPage('role-selection');
   };
 
@@ -98,6 +122,11 @@ function App() {
   };
 
   const handleRoleSelect = (role) => {
+    // Mark onboarding as completed when user selects their role
+    if (walletAddress) {
+      markOnboardingCompleted(walletAddress);
+    }
+    
     if (role === 'creator') {
       setCurrentPage('poll-creation');
     } else {
@@ -152,17 +181,28 @@ function App() {
   };
 
   const handleRerunGettingStarted = () => {
-    setCurrentPage('getting-started');
+    // Reset onboarding status and restart the flow
+    if (walletAddress) {
+      resetOnboarding(walletAddress);
+    }
+    setCurrentPage('onboarding');
   };
 
   const handleBottomNavigation = (page) => {
     setCurrentPage(page);
   };
 
+  const handleManagePolls = () => {
+    setCurrentPage('manage-polls');
+  };
+
   return (
     <div className="app">
-      {currentPage === 'getting-started' && (
+      {currentPage === 'onboarding' && (
         <OnboardingCarousel onComplete={handleContinue} />
+      )}
+      {currentPage === 'getting-started-wallet' && (
+        <GettingStarted onContinue={handleGettingStartedContinue} />
       )}
       {currentPage === 'animation-mode-selection' && (
         <AnimationModeSelection onModeSelect={handleAnimationModeSelect} onBack={handleBackToGettingStarted} />
@@ -186,11 +226,23 @@ function App() {
       {currentPage === 'welcome' && (
         <Welcome onLogin={handleLogin} />
       )}
-      {currentPage === 'main' && isConnected && (
-        <MainApp onLogout={handleLogout} onRerunGettingStarted={handleRerunGettingStarted} />
+      {currentPage === 'main' && (
+        <MainApp 
+          isConnected={isConnected}
+          onLogout={handleLogout} 
+          onRerunGettingStarted={handleRerunGettingStarted} 
+          onPollSelect={handlePollSelect} 
+        />
       )}
       {currentPage === 'user-settings' && isConnected && (
-        <UserSettings onBack={handleBottomNavigation} onRerunGettingStarted={handleRerunGettingStarted} />
+        <UserSettings onBack={handleBottomNavigation} onRerunGettingStarted={handleRerunGettingStarted} onManagePolls={handleManagePolls} />
+      )}
+      {currentPage === 'manage-polls' && isConnected && (
+        <div style={{padding: '20px', textAlign: 'center'}}>
+          <h1>Manage Polls</h1>
+          <p>Manage Polls page coming soon!</p>
+          <button onClick={() => handleBottomNavigation('user-settings')}>← Back to Profile</button>
+        </div>
       )}
       {currentPage === 'poll-funding' && isConnected && (
         <PollFunding onBack={handleBottomNavigation} />
@@ -202,7 +254,7 @@ function App() {
         <TelegramUIPollCreation onPollCreate={handlePollCreate} onBack={handleBottomNavigation} />
       )}
       
-      {isConnected && (
+      {isConnected && !['onboarding', 'getting-started-wallet', 'animation-mode-selection', 'role-selection', 'poll-creation', 'poll-response', 'welcome'].includes(currentPage) && (
         <BottomNavigation 
           currentPage={currentPage} 
           onNavigate={handleBottomNavigation} 

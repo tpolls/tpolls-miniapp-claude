@@ -42,12 +42,7 @@ function GettingStarted({ onContinue }) {
   return (
     <div className={`getting-started-page ${isConnected ? 'wallet-connected' : ''}`}>
       <div className="getting-started-header">
-        <h1 className="app-title">tPolls</h1>
-        <h2 className="page-title">Get Started</h2>
-        <p className="page-subtitle">
-          A miniapp for polls built on<br />
-          top of TON
-        </p>
+        <h2 className="page-title">Let's Try tPolls out</h2>
       </div>
 
       <div className="getting-started-illustration">

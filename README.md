@@ -133,14 +133,14 @@ Create a `.env` file in the root directory for environment-specific configuratio
 # TON Smart Contract Address (required)
 REACT_APP_TPOLLS_CONTRACT_ADDRESS=EQDzYUsVz1PZ4mCOFHYdchV0J0Xs0Qz9DEx7nEMqGJ_OsZ30
 
-# Gasless Voting Relayer Endpoint (optional)
-REACT_APP_RELAYER_ENDPOINT=http://localhost:3001/api/relay
+# tPolls API Backend URL (optional)
+VITE_DPOLLS_API=http://localhost:3001
 ```
 
 ### Environment Variables Description
 
-- **`REACT_APP_TPOLLS_CONTRACT_ADDRESS`**: The address of the deployed TPollsDapp smart contract on TON blockchain. If not set, uses the default contract address.
-- **`REACT_APP_RELAYER_ENDPOINT`**: URL of the relayer service for gasless transactions. If not set, defaults to `http://localhost:3001/api/relay` for development.
+- **`VITE_TPOLLS_CONTRACT_ADDRESS`**: The address of the deployed TPollsDapp smart contract on TON blockchain. If not set, uses the default contract address.
+- **`VITE_DPOLLS_API`**: URL of the tPolls backend API service. If not set, defaults to `http://localhost:3001` for development. This includes endpoints for poll options generation and gasless voting relay.
 
 Copy `.env.example` to `.env` and update the values as needed for your deployment.
 

@@ -42,23 +42,42 @@
 .nav-item[data-page="poll-creation"] {
   background: #007AFF;
   border-radius: 50%;
-  width: 48px;
-  height: 48px;
+  width: 65px;
+  height: 65px;
   padding: 0;
   justify-content: center;
-  margin: -8px 12px 0 12px;
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+  margin: -12px 12px 10px 12px;
+  box-shadow: 
+    0 4px 12px rgba(0, 122, 255, 0.25),
+    0 1px 4px rgba(0, 0, 0, 0.1);
   flex: none;
   position: relative;
   z-index: 2;
+  border: none;
+  animation: centerButtonPulse 4s ease-in-out infinite;
+}
+
+/* Add a subtle glow ring effect */
+.nav-item[data-page="poll-creation"]::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 50%;
+  background: rgba(0, 122, 255, 0.2);
+  z-index: -1;
+  opacity: 0;
+  animation: centerButtonGlow 4s ease-in-out infinite;
 }
 
 .nav-item[data-page="poll-creation"] .nav-icon {
   color: white;
-  font-size: 24px;
+  font-size: 26px;
   margin: 0;
   line-height: 1;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .nav-item[data-page="poll-creation"] .nav-label {
@@ -72,8 +91,11 @@
 
 .nav-item[data-page="poll-creation"]:hover {
   background: #0056D6;
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+  transform: scale(1.15);
+  box-shadow: 
+    0 6px 16px rgba(0, 122, 255, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.15);
+  animation: none;
 }
 
 .nav-item.active {
@@ -84,7 +106,9 @@
   background: #007AFF;
   color: white;
   transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+  box-shadow: 
+    0 6px 18px rgba(0, 122, 255, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .nav-icon {
@@ -248,7 +272,9 @@
   .nav-item,
   .nav-icon,
   .nav-label,
-  .active-indicator {
+  .active-indicator,
+  .nav-item[data-page="poll-creation"],
+  .nav-item[data-page="poll-creation"]::before {
     animation: none !important;
     transition: none !important;
   }
@@ -273,4 +299,39 @@
 /* Hide focus outline on mouse interaction */
 .nav-item:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Center button pulse animation */
+@keyframes centerButtonPulse {
+  0% {
+    box-shadow: 
+      0 4px 12px rgba(0, 122, 255, 0.25),
+      0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 6px 16px rgba(0, 122, 255, 0.35),
+      0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+  100% {
+    box-shadow: 
+      0 4px 12px rgba(0, 122, 255, 0.25),
+      0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Center button glow ring animation */
+@keyframes centerButtonGlow {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }

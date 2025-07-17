@@ -40,8 +40,7 @@ function PollCreation({ onBack, onPollCreate }) {
     // Step 3: Configuration
     fundingSource: 'self-funded', // 'self-funded' or 'crowdfunded'
     openImmediately: true,
-    rewardDistribution: 'equal-share', // 'equal-share' or 'fixed'
-    enableGaslessResponses: true // Enable gasless voting for responses
+    rewardDistribution: 'equal-share' // 'equal-share' or 'fixed'
   });
   const [isCreating, setIsCreating] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -178,15 +177,15 @@ function PollCreation({ onBack, onPollCreate }) {
     setIsGeneratingOptions(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/poll-options', {
+      const response = await fetch(`${import.meta.env.VITE_DPOLLS_API || 'http://localhost:3001'}/api/poll-options`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          subject: formData.subject,
-          description: formData.description,
-          category: formData.category
+          question: formData.subject,
+          category: formData.category,
+          numOptions: 2
         })
       });
 
@@ -234,21 +233,15 @@ function PollCreation({ onBack, onPollCreate }) {
   const calculateFees = () => {
     const baseFunding = 0.05; // Base funding amount
     const baseAdminFee = 0.05; // 5% base administration fee
-    const gaslessAdminFee = 0.01; // Additional 1% for gasless responses
     
-    const adminFeeRate = formData.enableGaslessResponses 
-      ? baseAdminFee + gaslessAdminFee // 6% total for gasless
-      : baseAdminFee; // 5% for regular
-    
-    const adminFeeAmount = baseFunding * adminFeeRate;
+    const adminFeeAmount = baseFunding * baseAdminFee;
     const totalCost = baseFunding + adminFeeAmount + 0.01; // +0.01 for gas
     
     return {
       baseFunding,
-      adminFeeRate: adminFeeRate * 100, // Convert to percentage
+      adminFeeRate: baseAdminFee * 100, // Convert to percentage
       adminFeeAmount,
-      totalCost,
-      gaslessEnabled: formData.enableGaslessResponses
+      totalCost
     };
   };
 
@@ -278,7 +271,6 @@ function PollCreation({ onBack, onPollCreate }) {
         fundingSource: formData.fundingSource,
         openImmediately: formData.openImmediately,
         rewardDistribution: formData.rewardDistribution,
-        enableGaslessResponses: formData.enableGaslessResponses,
         feeBreakdown: feeCalculation
       };
 
@@ -305,7 +297,7 @@ function PollCreation({ onBack, onPollCreate }) {
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return formData.subject.trim() && formData.description.trim() && formData.category.trim();
+        return formData.subject.trim() && formData.category.trim();
       case 2:
         return formData.options.every(opt => opt.trim()) && formData.options.length >= 2;
       case 3:
@@ -332,7 +324,7 @@ function PollCreation({ onBack, onPollCreate }) {
             <h2 className="step-title">Basic Information</h2>
             
             <div className="form-group">
-              <label htmlFor="subject">Poll Subject</label>
+              <label htmlFor="subject">Poll Subject *</label>
               <input
                 type="text"
                 id="subject"
@@ -344,7 +336,7 @@ function PollCreation({ onBack, onPollCreate }) {
             </div>
 
             <div className="form-group">
-              <label htmlFor="description">Description</label>
+              <label htmlFor="description">Description (Optional)</label>
               <textarea
                 id="description"
                 value={formData.description}
@@ -382,7 +374,7 @@ function PollCreation({ onBack, onPollCreate }) {
             </div>
 
             <div className="form-group">
-              <label htmlFor="category">Category</label>
+              <label htmlFor="category">Category *</label>
               <Select
                 header="Category"
                 placeholder="Select category"
@@ -530,23 +522,6 @@ function PollCreation({ onBack, onPollCreate }) {
               </div>
             </div>
 
-            <div className="form-group">
-              <div className="switch-container gasless-switch-container">
-                <label className="checkbox-label gasless-responses-toggle">
-                  <Switch
-                    checked={formData.enableGaslessResponses}
-                    onChange={(e) => handleInputChange('enableGaslessResponses', e.target.checked)}
-                  />
-                  <span>🆓 Enable gasless responses (recommended)</span>
-                </label>
-              </div>
-              <div className="gasless-info-text">
-                {formData.enableGaslessResponses 
-                  ? "Users can vote without paying transaction fees. Additional 1% admin fee applies."
-                  : "Users will pay their own transaction fees when voting."
-                }
-              </div>
-            </div>
 
             <div className="fee-breakdown">
               <h3>Fee Breakdown</h3>
@@ -566,12 +541,6 @@ function PollCreation({ onBack, onPollCreate }) {
                 <span className="fee-label">Total cost:</span>
                 <span className="fee-value">{calculateFees().totalCost.toFixed(3)} TON</span>
               </div>
-              {formData.enableGaslessResponses && (
-                <div className="gasless-benefit-note">
-                  <span className="benefit-icon">💡</span>
-                  <span>Extra 1% fee covers gasless voting infrastructure for your poll responders</span>
-                </div>
-              )}
             </div>
           </div>
         );
@@ -594,55 +563,64 @@ function PollCreation({ onBack, onPollCreate }) {
 
         <div className="poll-creation-actions">
           <div className="action-buttons">
-            {currentStep > 1 && (
-              <Button
-                size="large"
-                mode="outline"
-                stretched
-                onClick={handlePrevious}
-              >
-                Previous
-              </Button>
-            )}
-            
-            {currentStep < 3 ? (
-              <Button
-                size="large"
-                mode="filled"
-                stretched
-                onClick={handleNext}
-                disabled={!isStepValid()}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                size="large"
-                mode="filled"
-                stretched
-                onClick={handleCreate}
-                disabled={!isStepValid() || isCreating}
-              >
-                {isCreating ? (
-                  <>
-                    <span className="loading-spinner"></span>
-                    Creating Poll...
-                  </>
+            {currentStep > 1 ? (
+              <>
+                <Button
+                  size="large"
+                  mode="outline"
+                  onClick={handlePrevious}
+                >
+                  Previous
+                </Button>
+                
+                {currentStep < 3 ? (
+                  <Button
+                    size="large"
+                    mode="filled"
+                    onClick={handleNext}
+                    disabled={!isStepValid()}
+                  >
+                    Next
+                  </Button>
                 ) : (
-                  'Create Poll'
+                  <Button
+                    size="large"
+                    mode="filled"
+                    onClick={handleCreate}
+                    disabled={!isStepValid() || isCreating}
+                  >
+                    {isCreating ? (
+                      <>
+                        <span className="loading-spinner"></span>
+                        Creating Poll...
+                      </>
+                    ) : (
+                      'Create Poll'
+                    )}
+                  </Button>
                 )}
-              </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="large"
+                  mode="plain"
+                  onClick={handleBack}
+                >
+                  Cancel
+                </Button>
+                
+                <Button
+                  size="large"
+                  mode="filled"
+                  onClick={handleNext}
+                  disabled={!isStepValid()}
+                >
+                  Next
+                </Button>
+              </>
             )}
           </div>
-          
-          <Button
-            size="medium"
-            mode="plain"
-            stretched
-            onClick={handleBack}
-          >
-            Cancel
-          </Button>
         </div>
 
         {showToast && (

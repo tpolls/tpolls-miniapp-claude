@@ -32,8 +32,7 @@ function RoleSelection({ onRoleSelect, onBack }) {
   return (
     <div className="role-selection-page">
       <div className="role-selection-header">
-        <h1 className="app-title">tPolls</h1>
-        <h2 className="page-title">Choose your role</h2>
+        <h2 className="page-title">Choose a role</h2>
       </div>
 
       <div className="role-options">

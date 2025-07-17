@@ -171,6 +171,36 @@ export const recordPollResponse = (walletAddress, responseData) => {
 };
 
 /**
+ * Reset onboarding status for a user
+ * @param {string} walletAddress - User's wallet address
+ */
+export const resetOnboarding = (walletAddress) => {
+  if (!walletAddress) return;
+  
+  try {
+    let history = {};
+    const existingHistory = localStorage.getItem(USER_HISTORY_KEY);
+    
+    if (existingHistory) {
+      history = JSON.parse(existingHistory);
+    }
+    
+    if (!history[walletAddress]) {
+      initializeUserHistory(walletAddress);
+      history = JSON.parse(localStorage.getItem(USER_HISTORY_KEY));
+    }
+    
+    // Reset only the onboarding status, keep other data
+    history[walletAddress].hasCompletedOnboarding = false;
+    history[walletAddress].lastActivity = new Date().toISOString();
+    
+    localStorage.setItem(USER_HISTORY_KEY, JSON.stringify(history));
+  } catch (error) {
+    console.error('Error resetting onboarding:', error);
+  }
+};
+
+/**
  * Clear user history (for testing/development)
  * @param {string} walletAddress - Optional: specific wallet to clear, or all if not provided
  */

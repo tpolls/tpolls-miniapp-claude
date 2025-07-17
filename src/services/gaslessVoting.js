@@ -5,8 +5,8 @@
 
 class GaslessVotingService {
   constructor() {
-    this.relayerEndpoint = process.env.REACT_APP_RELAYER_ENDPOINT || 'http://localhost:3001/api/relay';
-    this.contractAddress = process.env.REACT_APP_TPOLLS_CONTRACT_ADDRESS || 'EQDzYUsVz1PZ4mCOFHYdchV0J0Xs0Qz9DEx7nEMqGJ_OsZ30';
+    this.relayerEndpoint = import.meta.env.VITE_DPOLLS_API ? `${import.meta.env.VITE_DPOLLS_API}/api/relay` : 'http://localhost:3001/api/relay';
+    this.contractAddress = import.meta.env.VITE_TPOLLS_CONTRACT_ADDRESS || 'EQDzYUsVz1PZ4mCOFHYdchV0J0Xs0Qz9DEx7nEMqGJ_OsZ30';
   }
 
   /**
