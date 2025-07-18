@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { clearUserHistory } from '../utils/userHistory';
 import WalletMenu from './WalletMenu';
-import tpollsContract from '../services/tpollsContract';
+import { getActiveContract, getActiveConfig, USE_SIMPLE_CONTRACT } from '../config/contractConfig';
+import { transformPollForUI } from '../utils/contractDataTransformer';
 
 function MainApp({ isConnected, onLogout, onRerunGettingStarted, onPollSelect }) {
   const [tonConnectUI] = useTonConnectUI();
@@ -15,6 +16,10 @@ function MainApp({ isConnected, onLogout, onRerunGettingStarted, onPollSelect })
     rewardsEarned: '0',
     pollsCreated: 0
   });
+
+  // Get active contract service
+  const contractService = getActiveContract();
+  const contractConfig = getActiveConfig();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -38,26 +43,34 @@ function MainApp({ isConnected, onLogout, onRerunGettingStarted, onPollSelect })
 
   useEffect(() => {
     if (tonConnectUI) {
-      // Initialize contract service asynchronously
-      tpollsContract.init(tonConnectUI).then(() => {
+      // Initialize active contract service asynchronously
+      contractService.init(tonConnectUI).then(() => {
+        console.log(`✅ ${contractConfig.name} contract initialized`);
         // Reload polls after contract is initialized
         loadFeaturedPolls();
       }).catch(error => {
-        console.error('Failed to initialize contract:', error);
+        console.error(`Failed to initialize ${contractConfig.name} contract:`, error);
         // Still load featured polls with fallback data
         loadFeaturedPolls();
       });
     }
-  }, [tonConnectUI]);
+  }, [tonConnectUI, contractService, contractConfig]);
 
   const loadFeaturedPolls = async () => {
     try {
       setIsLoading(true);
-      const polls = await tpollsContract.getActivePolls();
+      const polls = await contractService.getActivePolls();
+      
+      // Transform poll data using the universal transformer
+      const contractType = USE_SIMPLE_CONTRACT ? 'simple' : 'complex';
+      const transformedPolls = polls.map(poll => transformPollForUI(poll, contractType));
+      
       // Get first 2 polls for featured section
-      setFeaturedPolls(polls.slice(0, 2));
+      setFeaturedPolls(transformedPolls.slice(0, 2));
+      
+      console.log(`✅ Loaded ${transformedPolls.length} polls from ${contractConfig.name} contract`);
     } catch (error) {
-      console.error('Error loading featured polls:', error);
+      console.error(`Error loading featured polls from ${contractConfig.name}:`, error);
       // Fallback to empty array if contract fails
       setFeaturedPolls([]);
     } finally {

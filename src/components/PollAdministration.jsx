@@ -1,8 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import WalletMenu from './WalletMenu';
-import tpollsContract from '../services/tpollsContract';
+import tpollsContractSimple from '../services/tpollsContractSimple';
 import './PollAdministration.css';
+
+// Mock data for development - replace with actual contract calls
+const mockUserPolls = [
+  {
+    id: 1,
+    title: "What's your favorite programming language?",
+    description: "Help us understand the preferences of our developer community",
+    category: "technology",
+    status: "active",
+    totalResponses: 156,
+    totalFunding: "2.5 TON",
+    targetFunding: "5.0 TON",
+    fundingProgress: 50,
+    duration: "5 days left",
+    rewardPool: "1.2 TON",
+    createdAt: "3 days ago",
+    gaslessEnabled: true,
+    options: ["JavaScript", "Python", "Rust", "Go", "TypeScript"]
+  },
+  {
+    id: 2,
+    title: "Best time for team meetings?",
+    description: "Finding the optimal meeting time for our distributed team",
+    category: "business",
+    status: "funding",
+    totalResponses: 0,
+    totalFunding: "0.8 TON",
+    targetFunding: "3.0 TON",
+    fundingProgress: 27,
+    duration: "Not started",
+    rewardPool: "0.5 TON",
+    createdAt: "1 week ago",
+    gaslessEnabled: false,
+    options: ["9 AM UTC", "2 PM UTC", "6 PM UTC", "Flexible"]
+  }
+];
 
 function PollAdministration({ onBack, onPollSelect }) {
   const [tonConnectUI] = useTonConnectUI();
@@ -23,7 +59,7 @@ function PollAdministration({ onBack, onPollSelect }) {
     }
     
     // Initialize contract service
-    tpollsContract.init(tonConnectUI);
+    tpollsContractSimple.init(tonConnectUI);
     loadUserPolls();
   }, [tonConnectUI]);
 
