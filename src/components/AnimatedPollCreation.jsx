@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import Lottie from 'lottie-react';
 import WalletMenu from './WalletMenu';
-import tpollsContract from '../services/tpollsContract';
+import tpollsContractSimple from '../services/tpollsContractSimple';
 import creatorAnimation from '../assets/creator.json';
 import './PollCreation.css';
 import './AnimatedPollCreation.css';
@@ -41,7 +41,7 @@ function AnimatedPollCreation({ onBack, onPollCreate }) {
     }
     
     // Initialize contract service
-    tpollsContract.init(tonConnectUI);
+    tpollsContractSimple.init(tonConnectUI);
   }, [tonConnectUI]);
 
   // Update character state based on form interactions
@@ -163,7 +163,7 @@ function AnimatedPollCreation({ onBack, onPollCreate }) {
         feeBreakdown: feeCalculation
       };
 
-      const result = await tpollsContract.createPoll(pollData);
+      const result = await tpollsContractSimple.createPoll(pollData);
       
       if (result.success) {
         setToastMessage('Poll created successfully!');

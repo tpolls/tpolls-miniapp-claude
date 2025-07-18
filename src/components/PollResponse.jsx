@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import WalletMenu from './WalletMenu';
-import tpollsContract from '../services/tpollsContract';
+import { getActiveContract, getActiveConfig, USE_SIMPLE_CONTRACT } from '../config/contractConfig';
+import { transformVoteDataForSimpleContract, transformVoteDataForComplexContract } from '../utils/contractDataTransformer';
 import './PollResponse.css';
 
 function PollResponse({ poll, onBack, onSubmitResponse }) {
@@ -12,6 +13,10 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
   const [gaslessInfo, setGaslessInfo] = useState(null);
   const [useGaslessVoting, setUseGaslessVoting] = useState(true);
 
+  // Get active contract service and configuration
+  const contractService = getActiveContract();
+  const contractConfig = getActiveConfig();
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
@@ -21,16 +26,20 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
     }
     
     // Initialize contract service
-    tpollsContract.init(tonConnectUI);
+    contractService.init(tonConnectUI);
     
-    // Load gasless voting information
-    loadGaslessInfo();
+    // Load gasless voting information (only for complex contract)
+    if (contractConfig.features.hasGaslessVoting) {
+      loadGaslessInfo();
+    }
   }, [tonConnectUI]);
 
   const loadGaslessInfo = async () => {
     try {
-      const info = await tpollsContract.getGaslessVotingInfo();
-      setGaslessInfo(info);
+      if (contractService.getGaslessVotingInfo) {
+        const info = await contractService.getGaslessVotingInfo();
+        setGaslessInfo(info);
+      }
     } catch (error) {
       console.error('Error loading gasless info:', error);
     }
@@ -53,7 +62,13 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
     setIsSubmitting(true);
 
     try {
-      const result = await tpollsContract.voteOnPoll(poll.id, selectedOption, useGaslessVoting);
+      // Prepare vote data based on contract type
+      let voteResult;
+      // Simple contract voting (no gasless option)
+      voteResult = await contractService.voteOnPoll(poll.id, selectedOption);
+      console.log(`🗳️ Voting with ${contractConfig.name} (simplified voting)`);
+     
+      const result = voteResult;
       
       if (result.success) {
         const response = {

@@ -4,7 +4,7 @@ import { getAnimationMode, setAnimationMode } from '../utils/animationMode';
 import { clearUserHistory } from '../utils/userHistory';
 import WalletMenu from './WalletMenu';
 import './UserSettings.css';
-import { tpollsContract } from '../services/tpollsContract';
+import tpollsContractSimple from '../services/tpollsContractSimple';
 
 function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
   const [tonConnectUI] = useTonConnectUI();
@@ -33,17 +33,11 @@ function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
 
   useEffect(() => {
     const fetchStatusAndOwner = async () => {
-      const s = await tpollsContract.getContractStatus();
+      const s = await tpollsContractSimple.getContractStatus();
       console.log('s', s);
       setContractStatus(s);
-      const ownerAddr = await tpollsContract.getOwnerAddress();
-      console.log('ownerAddr', ownerAddr);
-      const userAddr = tonConnectUI?.account?.address;
-      console.log('userAddr', userAddr);
-      setIsOwner(
-        ownerAddr && userAddr &&
-        ownerAddr.replace(/-/g, '').toLowerCase() === userAddr.replace(/-/g, '').toLowerCase()
-      );
+      // Simplified contract doesn't have owner functionality
+      setIsOwner(false);
     };
     fetchStatusAndOwner();
   }, [tonConnectUI?.account?.address]);
@@ -98,9 +92,9 @@ function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
     setInitLoading(true);
     setInitResult(null);
     try {
-      const result = await tpollsContract.initializeContract();
-      setInitResult({ success: true, message: result.message || 'Initialized!' });
-      const s = await tpollsContract.getContractStatus();
+      // Simplified contract doesn't need initialization
+      setInitResult({ success: true, message: 'Simplified contract is ready to use!' });
+      const s = await tpollsContractSimple.getContractStatus();
       setContractStatus(s);
     } catch (error) {
       setInitResult({ success: false, message: error.message });

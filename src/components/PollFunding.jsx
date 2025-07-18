@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import tpollsContract from '../services/tpollsContract';
+import tpollsContractSimple from '../services/tpollsContractSimple';
 import './PollFunding.css';
 
 
@@ -22,7 +22,7 @@ function PollFunding({ onBack }) {
     }
     
     // Initialize contract service
-    tpollsContract.init(tonConnectUI);
+    tpollsContractSimple.init(tonConnectUI);
     loadFundingPolls();
   }, [tonConnectUI]);
 
@@ -31,7 +31,7 @@ function PollFunding({ onBack }) {
       setIsLoading(true);
       
       // Get all active polls from contract
-      const activePolls = await tpollsContract.getActivePolls();
+      const activePolls = await tpollsContractSimple.getActivePolls();
       
       // Transform polls to funding format with funding info
       const fundingPolls = activePolls.map((poll, index) => ({
@@ -84,7 +84,7 @@ function PollFunding({ onBack }) {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
-            address: tpollsContract.contractAddress,
+            address: tpollsContractSimple.contractAddress,
             amount: (parseFloat(fundingAmount) * 1000000000).toString() // Convert to nanotons
           }
         ]

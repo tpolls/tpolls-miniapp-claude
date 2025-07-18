@@ -20,13 +20,19 @@ import {
 } from '@telegram-apps/telegram-ui';
 import '@telegram-apps/telegram-ui/dist/styles.css';
 import WalletMenu from './WalletMenu';
-import tpollsContract from '../services/tpollsContract';
+import { getActiveContract, getActiveConfig, USE_SIMPLE_CONTRACT } from '../config/contractConfig';
+import { transformPollDataForSimpleContract, transformPollDataForComplexContract } from '../utils/contractDataTransformer';
 import './PollCreation.css';
 
 function PollCreation({ onBack, onPollCreate }) {
   const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  
+  // Get active contract service and configuration
+  const contractService = getActiveContract();
+  const contractConfig = getActiveConfig();
+  
   const [formData, setFormData] = useState({
     // Step 1: Basic Information
     subject: '',
@@ -57,7 +63,7 @@ function PollCreation({ onBack, onPollCreate }) {
     }
     
     // Initialize contract service
-    tpollsContract.init(tonConnectUI);
+    contractService.init(tonConnectUI);
     
     // Enhanced CSS injection for Telegram UI Switch theming
     const style = document.createElement('style');
@@ -260,7 +266,8 @@ function PollCreation({ onBack, onPollCreate }) {
     try {
       const feeCalculation = calculateFees();
       
-      const pollData = {
+      // Prepare poll data based on contract type
+      let pollData = {
         title: formData.subject,
         description: formData.description || 'Poll created via tPolls miniapp',
         options: formData.options.filter(opt => opt.trim()),
@@ -271,10 +278,20 @@ function PollCreation({ onBack, onPollCreate }) {
         fundingSource: formData.fundingSource,
         openImmediately: formData.openImmediately,
         rewardDistribution: formData.rewardDistribution,
-        feeBreakdown: feeCalculation
+        feeBreakdown: feeCalculation,
+        createdBy: tonConnectUI.account?.address
       };
 
-      const result = await tpollsContract.createPoll(pollData);
+      // Transform data based on contract type
+      if (USE_SIMPLE_CONTRACT) {
+        pollData = transformPollDataForSimpleContract(pollData);
+        console.log(`🔧 Creating poll with ${contractConfig.name} (simplified data)`);
+      } else {
+        pollData = transformPollDataForComplexContract(pollData);
+        console.log(`🔧 Creating poll with ${contractConfig.name} (full data)`);
+      }
+
+      const result = await contractService.createPoll(pollData);
       
       if (result.success) {
         setToastMessage('Poll created successfully!');

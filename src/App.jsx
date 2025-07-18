@@ -40,6 +40,9 @@ function App() {
   const [walletAddress, setWalletAddress] = useState(null);
   const [selectedPoll, setSelectedPoll] = useState(null);
   const [animationMode, setAnimationMode] = useState('static');
+  
+  // Use simple contract version - can be toggled via environment variable
+  const useSimpleContract = import.meta.env.VITE_USE_SIMPLE_CONTRACT !== 'false';
 
   useEffect(() => {
     // Load animation mode preference

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import WalletMenu from './WalletMenu';
-import tpollsContract from '../services/tpollsContract';
+import tpollsContractSimple from '../services/tpollsContractSimple';
 import './PollSelection.css';
 
 
@@ -10,7 +10,7 @@ function PollSelection({ onBack, onPollSelect }) {
   const [webApp, setWebApp] = useState(null);
   const [polls, setPolls] = useState([]);
   const [selectedPoll, setSelectedPoll] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ function PollSelection({ onBack, onPollSelect }) {
     }
     
     // Initialize contract service
-    tpollsContract.init(tonConnectUI).then(() => {
+    tpollsContractSimple.init(tonConnectUI).then(() => {
       loadPolls();
     }).catch(error => {
       console.error('Failed to initialize contract:', error);
@@ -31,10 +31,11 @@ function PollSelection({ onBack, onPollSelect }) {
   }, [tonConnectUI]);
 
   const loadPolls = async () => {
+    debugger
     try {
       setIsLoading(true);
       setError(null);
-      const activePolls = await tpollsContract.getActivePolls();
+      const activePolls = await tpollsContractSimple.getActivePolls();
       setPolls(activePolls);
     } catch (error) {
       console.error('Error loading polls:', error);

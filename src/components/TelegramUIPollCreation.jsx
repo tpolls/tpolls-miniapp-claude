@@ -27,7 +27,7 @@ import {
 import '@telegram-apps/telegram-ui/dist/styles.css';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import WalletMenu from './WalletMenu';
-import tpollsContract from '../services/tpollsContract';
+import tpollsContractSimple from '../services/tpollsContractSimple';
 import { isAnimationEnabled } from '../utils/animationMode';
 
 function TelegramUIPollCreation({ onBack, onPollCreate }) {
@@ -75,7 +75,7 @@ function TelegramUIPollCreation({ onBack, onPollCreate }) {
     }
     
     // Initialize contract service
-    tpollsContract.init(tonConnectUI);
+    tpollsContractSimple.init(tonConnectUI);
   }, [tonConnectUI]);
 
   // Update main button based on current step
@@ -224,7 +224,7 @@ function TelegramUIPollCreation({ onBack, onPollCreate }) {
         feeBreakdown: feeCalculation
       };
 
-      const result = await tpollsContract.createPoll(pollData);
+      const result = await tpollsContractSimple.createPoll(pollData);
       
       if (result.success) {
         webApp?.showAlert('Poll created successfully!');
