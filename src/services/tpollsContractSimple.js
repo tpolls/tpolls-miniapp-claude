@@ -830,13 +830,50 @@ class TPollsContractSimple {
       const item = stack.items[0];
       
       if (item.type === 'tuple' && item.items) {
+        // Parse according to the generated loadGetterTuplePoll function:
+        // pollId: BigNumber, creator: Address, subject: String, results: Cell (Dictionary)
+        const pollId = item.items[0]?.value ? Number(item.items[0].value) : 0;
+        
+        // Parse creator address from cell
+        debugger
+        let creator = null;
+        try {
+          const creatorSlice = item.items[1].beginParse();
+          const creatorAddress = creatorSlice.loadAddress();
+          creator = creatorAddress.toString();
+        } catch (e) {
+          console.warn('Failed to parse creator address:', e);
+        }
+        console.log('creator', creator)
+        
+        // Parse subject string from cell
+        let subject = 'No subject';
+        try {
+          const subjectSlice = item.items[2].beginParse();
+          subject = subjectSlice.loadStringTail();
+        } catch (e) {
+          console.warn('Failed to parse subject string:', e);
+        }
+        console.log('subject', subject)
+        
+        // Parse results dictionary from cell (simplified for now)
+        const results = {};
+        if (item.items[3]?.type === 'cell' && item.items[3].cell) {
+          try {
+            // Dictionary parsing would go here
+            // For now, we'll leave it empty as Dictionary parsing is complex
+          } catch (e) {
+            console.warn('Failed to parse results dictionary:', e);
+          }
+        }
+        
         return {
-          pollId: Number(item.items[0]?.value || 0),
-          creator: item.items[1]?.value ? Address.parse(item.items[1].value).toString() : null,
-          subject: item.items[2]?.value || 'No subject',
-          results: item.items[3] || {},
+          pollId,
+          creator,
+          subject,
+          results,
           // Calculate derived fields
-          totalVotes: this._calculateTotalVotes(item.items[3] || {}),
+          totalVotes: this._calculateTotalVotes(results),
           isActive: true // All polls are active by default in this simple contract
         };
       }
