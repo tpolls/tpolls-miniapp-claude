@@ -115,7 +115,7 @@ function PollFunding({ onBack }) {
       webApp.HapticFeedback.impactOccurred('light');
     }
     if (onBack) {
-      onBack();
+      onBack('main');
     }
   };
 

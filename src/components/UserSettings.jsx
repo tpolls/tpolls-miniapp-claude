@@ -262,44 +262,6 @@ function UserSettings({ onBack, onRerunGettingStarted, onManagePolls }) {
         </div>
       </div>
 
-      {/* Contract Initializer UI - only for contract owner */}
-      <div style={{ border: '1px solid #eee', padding: 16, borderRadius: 8, margin: 16 }}>
-        <h3>Contract Initialization</h3>
-        <div>
-          <strong>Status:</strong>{' '}
-          {contractStatus
-            ? contractStatus.deployed
-              ? contractStatus.initialized
-                ? '✅ Initialized'
-                : '⚠️ Not initialized'
-              : '❌ Not deployed'
-            : 'Loading...'}
-        </div>
-        {contractStatus && contractStatus.error && (
-          <div style={{ color: 'red', marginTop: 8 }}>{contractStatus.error}</div>
-        )}
-        {/* Only show the button if not initialized */}
-        {contractStatus && contractStatus.deployed && !contractStatus.initialized ? (
-          <button
-            onClick={handleInitializeContract}
-            disabled={initLoading}
-            style={{ marginTop: 12 }}
-          >
-            {initLoading ? 'Initializing...' : 'Initialize Contract'}
-          </button>
-        ) : contractStatus && contractStatus.initialized ? (
-          <div style={{ color: 'green', marginTop: 12 }}>
-            Contract is already initialized.
-          </div>
-        ) : null}
-        {initResult && (
-          <div style={{ color: initResult.success ? 'green' : 'red', marginTop: 8 }}>
-            {initResult.message}
-          </div>
-        )}
-      </div>
-
-
       {showConfirmDialog && (
         <div className="confirm-dialog-overlay">
           <div className="confirm-dialog">
