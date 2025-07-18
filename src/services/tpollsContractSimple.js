@@ -12,7 +12,7 @@ class TPollsContractSimple {
     this.apiBaseUrl = import.meta.env.VITE_TPOLLS_API || 'https://tpolls-api.onrender.com/api';
     
     // TON Configuration
-    this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQALr5-FARSMfmifCqViREbvSGpQnz9I4-ld9OUM8Tj2Qn7B';
+    this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQB8vk2NXopO6RIyX6ShDDumyOH2l3y9UQywI2RjYV3BfUOh';
     this.tonConnectUI = null;
     this.client = null;
     
@@ -167,7 +167,8 @@ class TPollsContractSimple {
       
       // Step 2: Create poll transaction for blockchain
       console.log('Creating poll on blockchain...');
-      const transactionData = await this._createPollTransaction(optionCount, pollData.createdBy);
+      const pollSubject = aiData?.subject || pollData.title || pollData.subject || 'New Poll';
+      const transactionData = await this._createPollTransaction(optionCount, pollData.createdBy, pollSubject);
       
       // Step 3: Send transaction to blockchain
       const result = await this.tonConnectUI.sendTransaction({
@@ -268,7 +269,7 @@ class TPollsContractSimple {
   /**
    * Create poll transaction directly with blockchain
    */
-  async _createPollTransaction(optionCount, createdBy) {
+  async _createPollTransaction(optionCount, createdBy, pollSubject = '') {
     if (!this.client) {
       throw new Error('TON client not available for direct blockchain interaction');
     }
@@ -311,20 +312,20 @@ class TPollsContractSimple {
         // Try alternative method names that might exist
         try {
           const contractAddress = Address.parse(this.contractAddress);
-          const totalPolls = await this.client.runMethod(contractAddress, 'getTotalPolls');
+          const totalPolls = await this.client.runMethod(contractAddress, 'getPollCount');
           if (totalPolls.stack && totalPolls.stack.items.length > 0) {
             nextPollId = Number(totalPolls.stack.items[0].value) + 1;
-            console.log('Retrieved next poll ID from getTotalPolls:', nextPollId);
+            console.log('Retrieved next poll ID from getPollCount:', nextPollId);
           }
         } catch (totalError) {
-          console.log('getTotalPolls method also not available, sticking with timestamp ID');
+          console.log('getPollCount method also not available, sticking with timestamp ID');
         }
       }
 
-      // Build CreatePoll message payload
+      // Build CreatePoll message payload with subject
       const messageBody = beginCell()
-        .storeUint(1563446443, 32) // CreatePoll operation code from ABI
-        .storeUint(optionCount, 32)
+        .storeUint(1060918784, 32) // CreatePoll operation code from ABI
+        .storeStringRefTail(pollSubject || '') // Store poll subject as string
         .endCell();
 
       const payload = messageBody.toBoc().toString('base64');
@@ -451,9 +452,9 @@ class TPollsContractSimple {
 
       // Build Vote message payload
       const messageBody = beginCell()
-        .storeUint(2172077871, 32) // Vote operation code from ABI
-        .storeUint(pollId, 32)
-        .storeUint(optionIndex, 32)
+        .storeUint(1011836453, 32) // Vote operation code from ABI
+        .storeInt(pollId, 257)
+        .storeInt(optionIndex, 257)
         .endCell();
 
       const payload = messageBody.toBoc().toString('base64');
@@ -523,21 +524,106 @@ class TPollsContractSimple {
    * @returns {Promise<Array>} Array of active polls
    */
   async getActivePolls() {
-    if (this.isBackendAvailable) {
+    if (!this.client) {
+      // Initialize TON client if not already done
       try {
-        const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/polls/active`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            return data.polls.map(poll => this._transformPollData(poll));
-          }
-        }
+        const network = import.meta.env.VITE_TON_NETWORK || 'testnet';
+        const toncenterEndpoint = import.meta.env.VITE_TONCENTER_ENDPOINT ||
+          (network === 'testnet'
+            ? 'https://testnet.toncenter.com/api/v2/jsonRPC'
+            : 'https://toncenter.com/api/v2/jsonRPC');
+
+        this.client = new TonClient({
+          endpoint: toncenterEndpoint,
+          apiKey: import.meta.env.VITE_TONCENTER_API_KEY
+        });
+        
+        console.log('TON client initialized for getActivePolls');
       } catch (error) {
-        console.warn('Failed to get active polls from backend:', error);
+        console.error('Failed to initialize TON client:', error);
+        throw new Error('TON client not available for direct blockchain interaction');
       }
     }
 
-    return [];
+    try {
+      debugger
+      const contractAddress = Address.parse(this.contractAddress);
+      
+      // Get total number of polls first
+      let totalPolls = 0;
+      try {
+        const result = await this.client.runMethod(contractAddress, 'getPollCount');
+        if (result.stack && result.stack.items.length > 0) {
+          totalPolls = Number(result.stack.items[0].value);
+        }
+      } catch (error) {
+        console.warn('Could not get total polls count, trying alternative approach:', error);
+        // If getPollCount doesn't exist, try to get contract stats
+        try {
+          const statsResult = await this.client.runMethod(contractAddress, 'getContractStats');
+          if (statsResult.stack && statsResult.stack.items.length > 0) {
+            totalPolls = Number(statsResult.stack.items[0].value);
+          }
+        } catch (statsError) {
+          console.warn('Could not get contract stats either, using fallback approach');
+          // Fallback: try to get polls starting from ID 1 until we fail
+          totalPolls = 100; // reasonable upper limit for scanning
+        }
+      }
+
+      const activePolls = [];
+      
+      // Iterate through poll IDs to find active polls
+      for (let pollId = 1; pollId <= totalPolls; pollId++) {
+        try {
+          const pollResult = await this.client.runMethod(contractAddress, 'getPoll', [
+            { type: 'int', value: BigInt(pollId) }
+          ]);
+          
+          if (pollResult.stack && pollResult.stack.items.length > 0) {
+            const pollData = this._parsePollFromStack(pollResult.stack);
+            
+            if (pollData) {
+              // Create a transformed poll object
+              const transformedPoll = {
+                id: pollData.pollId,
+                title: pollData.subject || `Poll ${pollData.pollId}`,
+                description: 'Direct contract poll',
+                options: Array.from({ length: pollData.optionCount }, (_, i) => `Option ${i + 1}`),
+                category: 'general',
+                author: this._formatAddress(pollData.creator),
+                totalVotes: pollData.totalVotes,
+                totalResponses: pollData.totalVotes,
+                isActive: pollData.isActive,
+                createdAt: 'Unknown',
+                type: 'simple-blockchain',
+                optionCount: pollData.optionCount,
+                hasAiData: false,
+                subject: pollData.subject,
+                // Compatibility fields for UI
+                totalRewardFund: '0 TON',
+                daysRemaining: 0,
+                gaslessEnabled: false,
+                rewardPerVote: '0'
+              };
+              
+              activePolls.push(transformedPoll);
+            }
+          }
+        } catch (pollError) {
+          // Poll doesn't exist or error accessing it, continue to next
+          console.log(`Poll ${pollId} not accessible:`, pollError.message);
+          continue;
+        }
+      }
+
+      console.log(`Found ${activePolls.length} active polls via direct contract call`);
+      return activePolls;
+      
+    } catch (error) {
+      console.error('Error getting active polls from contract:', error);
+      throw new Error(`Failed to get active polls: ${error.message}`);
+    }
   }
 
   /**
@@ -595,6 +681,21 @@ class TPollsContractSimple {
   _formatAddress(address) {
     if (!address || address.length < 10) return 'Unknown';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }
+
+  /**
+   * Calculate total votes from results map
+   */
+  _calculateTotalVotes(results) {
+    if (!results || typeof results !== 'object') return 0;
+    
+    let totalVotes = 0;
+    for (const votes of Object.values(results)) {
+      if (typeof votes === 'number') {
+        totalVotes += votes;
+      }
+    }
+    return totalVotes;
   }
 
   /**
@@ -732,10 +833,11 @@ class TPollsContractSimple {
         return {
           pollId: Number(item.items[0]?.value || 0),
           creator: item.items[1]?.value ? Address.parse(item.items[1].value).toString() : null,
-          optionCount: Number(item.items[2]?.value || 0),
-          totalVotes: Number(item.items[3]?.value || 0),
-          isActive: Boolean(item.items[4]?.value),
-          results: item.items[5] || {}
+          subject: item.items[2]?.value || 'No subject',
+          results: item.items[3] || {},
+          // Calculate derived fields
+          totalVotes: this._calculateTotalVotes(item.items[3] || {}),
+          isActive: true // All polls are active by default in this simple contract
         };
       }
 
