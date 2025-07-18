@@ -9,7 +9,7 @@ import { TonClient } from '@ton/ton';
 class TPollsContractSimple {
   constructor() {
     // API Configuration
-    this.apiBaseUrl = import.meta.env.VITE_TPOLLS_API || 'http://localhost:3001';
+    this.apiBaseUrl = import.meta.env.VITE_TPOLLS_API || 'https://tpolls-api.onrender.com/api';
     
     // TON Configuration
     this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQALr5-FARSMfmifCqViREbvSGpQnz9I4-ld9OUM8Tj2Qn7B';
