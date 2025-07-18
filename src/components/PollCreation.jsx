@@ -268,7 +268,7 @@ function PollCreation({ onBack, onPollCreate }) {
       
       // Prepare poll data based on contract type
       let pollData = {
-        title: formData.subject,
+        subject: formData.subject,
         description: formData.description || 'Poll created via tPolls miniapp',
         options: formData.options.filter(opt => opt.trim()),
         duration: formData.votingPeriod * 3600, // Convert hours to seconds
@@ -283,13 +283,8 @@ function PollCreation({ onBack, onPollCreate }) {
       };
 
       // Transform data based on contract type
-      if (USE_SIMPLE_CONTRACT) {
-        pollData = transformPollDataForSimpleContract(pollData);
-        console.log(`🔧 Creating poll with ${contractConfig.name} (simplified data)`);
-      } else {
-        pollData = transformPollDataForComplexContract(pollData);
-        console.log(`🔧 Creating poll with ${contractConfig.name} (full data)`);
-      }
+      pollData = transformPollDataForSimpleContract(pollData);
+      console.log(`🔧 Creating poll with ${contractConfig.name} (simplified data)`);
 
       const result = await contractService.createPoll(pollData);
       
