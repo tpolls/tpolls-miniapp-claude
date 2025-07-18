@@ -77,7 +77,7 @@ export const transformComplexPollForUI = (complexPoll) => {
 export const transformPollDataForSimpleContract = (pollData) => {
   return {
     // Only pass essential data for simple contract
-    prompt: pollData.prompt,
+    subject: pollData.subject,
     options: pollData.options,
     createdBy: pollData.createdBy,
     
