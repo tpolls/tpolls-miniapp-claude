@@ -31,11 +31,11 @@ function PollSelection({ onBack, onPollSelect }) {
   }, [tonConnectUI]);
 
   const loadPolls = async () => {
-    debugger
     try {
       setIsLoading(true);
       setError(null);
       const activePolls = await tpollsContractSimple.getActivePolls();
+      console.log('activePolls', activePolls)
       setPolls(activePolls);
     } catch (error) {
       console.error('Error loading polls:', error);

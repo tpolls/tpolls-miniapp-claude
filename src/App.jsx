@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TonConnectUIProvider, useTonConnectUI } from '@tonconnect/ui-react';
+import { ToastProvider } from './contexts/ToastContext';
 import Welcome from './components/Welcome';
 import MainApp from './components/MainApp';
 import OnboardingCarousel from './components/OnboardingCarousel';
@@ -270,7 +271,9 @@ function App() {
 function AppWithProvider() {
   return (
     <TonConnectUIProvider manifestUrl="https://tpolls.vercel.app/tonconnect-manifest.json">
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </TonConnectUIProvider>
   );
 }
