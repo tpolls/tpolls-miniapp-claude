@@ -3,15 +3,18 @@ import { useTonConnectUI } from '@tonconnect/ui-react';
 import WalletMenu from './WalletMenu';
 import { getActiveContract, getActiveConfig, USE_SIMPLE_CONTRACT } from '../config/contractConfig';
 import { transformVoteDataForSimpleContract, transformVoteDataForComplexContract } from '../utils/contractDataTransformer';
+import { useToast } from '../contexts/ToastContext';
 import './PollResponse.css';
 
 function PollResponse({ poll, onBack, onSubmitResponse }) {
   const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
+  const { showSuccess, showError } = useToast();
   const [selectedOption, setSelectedOption] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gaslessInfo, setGaslessInfo] = useState(null);
   const [useGaslessVoting, setUseGaslessVoting] = useState(true);
+  console.log('poll', poll)
 
   // Get active contract service and configuration
   const contractService = getActiveContract();
@@ -85,11 +88,7 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
           : 'Vote submitted successfully! You may receive rewards after the poll ends.';
         
         // Show brief success message, then transition to home page
-        if (webApp) {
-          webApp.showAlert(successMessage);
-        } else {
-          alert(successMessage);
-        }
+        showSuccess(successMessage, 4000);
         
         // Transition to home page after brief delay
         setTimeout(() => {
@@ -100,7 +99,7 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
       }
     } catch (error) {
       console.error('Error submitting vote:', error);
-      alert(`Failed to submit vote: ${error.message}`);
+      showError(`Failed to submit vote: ${error.message}`, 5000);
     } finally {
       setIsSubmitting(false);
     }

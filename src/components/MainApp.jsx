@@ -4,6 +4,7 @@ import { clearUserHistory } from '../utils/userHistory';
 import WalletMenu from './WalletMenu';
 import { getActiveContract, getActiveConfig, USE_SIMPLE_CONTRACT } from '../config/contractConfig';
 import { transformPollForUI } from '../utils/contractDataTransformer';
+import tpollsApi from '../services/tpollsApi';
 
 function MainApp({ isConnected, onLogout, onRerunGettingStarted, onPollSelect }) {
   const [tonConnectUI] = useTonConnectUI();
@@ -43,15 +44,14 @@ function MainApp({ isConnected, onLogout, onRerunGettingStarted, onPollSelect })
 
   useEffect(() => {
     if (tonConnectUI) {
-      // Initialize active contract service asynchronously
+      // Start loading featured polls immediately for faster UI
+      loadFeaturedPolls();
+      
+      // Initialize active contract service in parallel
       contractService.init(tonConnectUI).then(() => {
         console.log(`✅ ${contractConfig.name} contract initialized`);
-        // Reload polls after contract is initialized
-        loadFeaturedPolls();
       }).catch(error => {
         console.error(`Failed to initialize ${contractConfig.name} contract:`, error);
-        // Still load featured polls with fallback data
-        loadFeaturedPolls();
       });
     }
   }, [tonConnectUI, contractService, contractConfig]);
@@ -59,19 +59,21 @@ function MainApp({ isConnected, onLogout, onRerunGettingStarted, onPollSelect })
   const loadFeaturedPolls = async () => {
     try {
       setIsLoading(true);
-      const polls = await contractService.getActivePolls();
+      
+      // Use dedicated API service for featured polls
+      console.log('⚡ Loading featured polls via TPolls API...');
+      const featuredPolls = await tpollsApi.getFeaturedPolls(2);
       
       // Transform poll data using the universal transformer
       const contractType = USE_SIMPLE_CONTRACT ? 'simple' : 'complex';
-      const transformedPolls = polls.map(poll => transformPollForUI(poll, contractType));
+      const transformedPolls = featuredPolls.map(poll => transformPollForUI(poll, contractType));
       
-      // Get first 2 polls for featured section
-      setFeaturedPolls(transformedPolls.slice(0, 2));
+      setFeaturedPolls(transformedPolls);
       
-      console.log(`✅ Loaded ${transformedPolls.length} polls from ${contractConfig.name} contract`);
+      console.log(`✅ Loaded ${transformedPolls.length} featured polls via TPolls API`);
     } catch (error) {
-      console.error(`Error loading featured polls from ${contractConfig.name}:`, error);
-      // Fallback to empty array if contract fails
+      console.error('Error loading featured polls from TPolls API:', error);
+      // Set empty array if API fails
       setFeaturedPolls([]);
     } finally {
       setIsLoading(false);
@@ -279,8 +281,12 @@ function MainApp({ isConnected, onLogout, onRerunGettingStarted, onPollSelect })
           {isLoading ? (
             <div className="loading-polls">
               <div className="poll-preview">
-                <div className="poll-question">Loading polls...</div>
-                <button className="vote-btn" disabled>Vote</button>
+                <div className="poll-question">⚡ Loading featured polls...</div>
+                <button className="vote-btn" disabled>...</button>
+              </div>
+              <div className="poll-preview">
+                <div className="poll-question">🔄 Getting latest community highlights...</div>
+                <button className="vote-btn" disabled>...</button>
               </div>
             </div>
           ) : featuredPolls.length > 0 ? (
