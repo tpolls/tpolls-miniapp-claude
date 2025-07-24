@@ -14,6 +14,8 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gaslessInfo, setGaslessInfo] = useState(null);
   const [useGaslessVoting, setUseGaslessVoting] = useState(true);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [checkingVoteStatus, setCheckingVoteStatus] = useState(true);
   console.log('poll', poll)
 
   // Get active contract service and configuration
@@ -29,13 +31,37 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
     }
     
     // Initialize contract service
-    contractService.init(tonConnectUI);
+    contractService.init(tonConnectUI).then(() => {
+      // Check if user has already voted on this poll
+      checkVotingStatus();
+    });
     
     // Load gasless voting information (only for complex contract)
     if (contractConfig.features.hasGaslessVoting) {
       loadGaslessInfo();
     }
-  }, [tonConnectUI]);
+  }, [tonConnectUI, poll]);
+
+  const checkVotingStatus = async () => {
+    if (!poll || !tonConnectUI?.account?.address) {
+      setCheckingVoteStatus(false);
+      return;
+    }
+
+    try {
+      setCheckingVoteStatus(true);
+      const userAddress = tonConnectUI.account.address;
+      const voted = await contractService.hasUserVoted(poll.id, userAddress);
+      console.log('voted', voted)
+      setHasVoted(voted);
+    } catch (error) {
+      console.error('Error checking voting status:', error);
+      // Default to allow voting if check fails
+      setHasVoted(false);
+    } finally {
+      setCheckingVoteStatus(false);
+    }
+  };
 
   const loadGaslessInfo = async () => {
     try {
@@ -56,7 +82,7 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
   };
 
   const handleSubmit = async () => {
-    if (selectedOption === null || isSubmitting) return;
+    if (selectedOption === null || isSubmitting || hasVoted) return;
 
     if (webApp) {
       webApp.HapticFeedback.impactOccurred('medium');
@@ -149,8 +175,8 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
             {poll.options.map((option, index) => (
               <div 
                 key={index}
-                className={`poll-option ${selectedOption === index ? 'selected' : ''}`}
-                onClick={() => handleOptionSelect(index)}
+                className={`poll-option ${selectedOption === index ? 'selected' : ''} ${hasVoted ? 'disabled' : ''}`}
+                onClick={() => !hasVoted && handleOptionSelect(index)}
               >
                 <div className="option-radio">
                   <div className={`radio-circle ${selectedOption === index ? 'checked' : ''}`}>
@@ -167,6 +193,31 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
           <div className="poll-stats">
             <span className="vote-count">{poll.totalVotes} votes so far</span>
           </div>
+
+          {checkingVoteStatus && (
+            <div className="voting-status checking">
+              <div className="status-icon">⏳</div>
+              <div className="status-message">Checking your voting status...</div>
+            </div>
+          )}
+
+          {!checkingVoteStatus && hasVoted && (
+            <div className="voting-status already-voted">
+              <div className="status-icon">✅</div>
+              <div className="status-message">
+                <strong>You have already voted on this poll!</strong>
+                <br />
+                <span className="status-subtext">You can view the results but cannot vote again.</span>
+              </div>
+            </div>
+          )}
+
+          {!checkingVoteStatus && !hasVoted && (
+            <div className="voting-status can-vote">
+              <div className="status-icon">🗳️</div>
+              <div className="status-message">Select an option and submit your vote</div>
+            </div>
+          )}
 
           {gaslessInfo && gaslessInfo.available && poll.gaslessEnabled && (
             <div className="gasless-info">
@@ -216,20 +267,42 @@ function PollResponse({ poll, onBack, onSubmitResponse }) {
         <button className="back-btn" onClick={handleBack}>
           Back
         </button>
-        <button 
-          className={`submit-btn ${selectedOption === null ? 'disabled' : ''} ${isSubmitting ? 'loading' : ''}`}
-          onClick={handleSubmit}
-          disabled={selectedOption === null || isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <span className="loading-spinner"></span>
-              Submitting...
-            </>
-          ) : (
-            'Submit Vote'
-          )}
-        </button>
+        
+        {hasVoted ? (
+          <button 
+            className="view-results-btn"
+            onClick={() => {
+              // Navigate to results page (you might need to pass this as a prop)
+              if (onSubmitResponse) {
+                // Simulate a response to navigate to results
+                onSubmitResponse({
+                  pollId: poll.id,
+                  selectedOption: null,
+                  viewResultsOnly: true
+                });
+              }
+            }}
+          >
+            📊 View Results
+          </button>
+        ) : (
+          <button 
+            className={`submit-btn ${selectedOption === null || checkingVoteStatus ? 'disabled' : ''} ${isSubmitting ? 'loading' : ''}`}
+            onClick={handleSubmit}
+            disabled={selectedOption === null || isSubmitting || checkingVoteStatus || hasVoted}
+          >
+            {isSubmitting ? (
+              <>
+                <span className="loading-spinner"></span>
+                Submitting...
+              </>
+            ) : checkingVoteStatus ? (
+              'Checking...'
+            ) : (
+              'Submit Vote'
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -3,61 +3,17 @@ import { TonClient } from '@ton/ton';
 
 /**
  * Simplified TPolls Service
- * Handles interactions with the new simplified TON contract
- * Contract only stores: poll creator, poll ID, and vote results
+ * Handles ONLY blockchain interactions with the TON contract
+ * Pure blockchain service - no backend API calls
  */
 class TPollsContractSimple {
   constructor() {
-    // API Configuration
-    this.apiBaseUrl = import.meta.env.VITE_TPOLLS_API || 'https://tpolls-api.onrender.com/api';
-    
-    // TON Configuration - Updated to use the new contract with options support
-    this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQBTTSiLga3dkYVTrKNFQYxat2UBTkL2RxGOGp4vqjMdPdTG';
+    // TON Configuration - Blockchain only
+    this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQAcDlO2BaUEtKW0Va2YJShs1pzlgHqz8SG1N9OUnGaL46vN';
     this.tonConnectUI = null;
     this.client = null;
-    
-    // Service state
-    this.isBackendAvailable = false;
-    this.isBlockchainAvailable = false;
-    
-    
-    // Service initialized
-    
-    // Test backend availability
-    this._testBackendConnection();
   }
 
-  /**
-   * Test backend API connection
-   */
-  async _testBackendConnection() {
-    try {
-      const response = await fetch(`${this.apiBaseUrl}/../health`);
-      if (response.ok) {
-        this.isBackendAvailable = true;
-        await this._testSimpleBlockchainStatus();
-      } else {
-        this.isBackendAvailable = false;
-      }
-    } catch (error) {
-      this.isBackendAvailable = false;
-    }
-  }
-
-  /**
-   * Test simple blockchain connection
-   */
-  async _testSimpleBlockchainStatus() {
-    try {
-      const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/status`);
-      if (response.ok) {
-        const data = await response.json();
-        this.isBlockchainAvailable = data.success && data.status.deployed;
-      }
-    } catch (error) {
-      this.isBlockchainAvailable = false;
-    }
-  }
 
   /**
    * Initialize the service with TonConnect UI
@@ -65,12 +21,7 @@ class TPollsContractSimple {
   async init(tonConnectUI) {
     this.tonConnectUI = tonConnectUI;
     
-    // Test backend if not already done
-    if (!this.isBackendAvailable) {
-      await this._testBackendConnection();
-    }
-    
-    // Initialize direct TON client as fallback
+    // Initialize TON client for direct blockchain interaction
     try {
       const network = import.meta.env.VITE_TON_NETWORK || 'testnet';
       const toncenterEndpoint = import.meta.env.VITE_TONCENTER_ENDPOINT ||
@@ -83,87 +34,62 @@ class TPollsContractSimple {
         apiKey: import.meta.env.VITE_TONCENTER_API_KEY
       });
       
-      // TonClient initialized
+      console.log('TON client initialized for blockchain interactions');
     } catch (error) {
+      console.error('Failed to initialize TON client:', error);
       this.client = null;
     }
   }
 
   /**
-   * Get contract status
+   * Get contract status from blockchain
    */
   async getContractStatus() {
-    // Try backend first if available
-    if (this.isBackendAvailable) {
-      try {
-        const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/status`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            return data.status;
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to get contract status from backend:', error);
-      }
+    if (!this.client) {
+      return { deployed: false, error: 'TON client not initialized' };
     }
 
-    // Fallback to direct blockchain check
-    if (this.client) {
-      try {
-        const contractAddress = Address.parse(this.contractAddress);
-        const contractState = await this.client.getContractState(contractAddress);
-        
-        return {
-          deployed: contractState.state === 'active',
-          active: contractState.state === 'active',
-          state: contractState.state,
-          address: this.contractAddress,
-          balance: contractState.balance ? Number(contractState.balance) / 1000000000 : 0, // Convert from nanotons
-          lastTransaction: contractState.lastTransaction
-        };
-      } catch (error) {
-        console.error('Error checking contract state directly:', error);
-        return { 
-          deployed: false, 
-          active: false,
-          error: error.message,
-          address: this.contractAddress 
-        };
-      }
+    try {
+      const contractAddress = Address.parse(this.contractAddress);
+      const contractState = await this.client.getContractState(contractAddress);
+      
+      return {
+        deployed: contractState.state === 'active',
+        active: contractState.state === 'active',
+        state: contractState.state,
+        address: this.contractAddress,
+        balance: contractState.balance ? Number(contractState.balance) / 1000000000 : 0,
+        lastTransaction: contractState.lastTransaction
+      };
+    } catch (error) {
+      console.error('Error checking contract state:', error);
+      return { 
+        deployed: false, 
+        active: false,
+        error: error.message,
+        address: this.contractAddress 
+      };
     }
-
-    return { deployed: false, error: 'No client available' };
   }
 
   /**
-   * Create a new poll with AI content (simplified blockchain-first approach)
+   * Create a new poll on blockchain
    * @param {Object} pollData - Poll creation data
    * @returns {Promise<Object>} Poll creation result
    */
   async createPoll(pollData) {
     try {
-      // Step 1: Generate AI content if prompt provided
-      let optionCount = 2;
-      let aiData = null;
-      
-      if (pollData.prompt) {
-        // Generating AI poll content
-        // Import the API service dynamically to avoid circular dependencies
-        const { default: tpollsApi } = await import('./tpollsApi.js');
-        const aiResult = await tpollsApi.createAIPoll(pollData.prompt);
-        aiData = aiResult.poll;
-        optionCount = aiData.options ? aiData.options.length : 2;
-      } else if (pollData.options) {
-        optionCount = pollData.options.length;
+      // Validate required data
+      if (!pollData.options || !Array.isArray(pollData.options) || pollData.options.length < 2) {
+        throw new Error('Poll must have at least 2 options');
       }
       
-      // Step 2: Create poll transaction for blockchain
-      const pollSubject = aiData?.subject || pollData.subject || pollData.title || 'New Poll';
-      const pollOptions = aiData?.options || pollData.options || Array.from({ length: optionCount }, (_, i) => `Option ${i + 1}`);
+      // Create poll transaction for blockchain
+      const pollSubject = pollData.subject || pollData.title || 'New Poll';
+      const pollOptions = pollData.options;
       const transactionData = await this._createPollTransaction(pollOptions, pollData.createdBy, pollSubject);
       
-      // Step 3: Send transaction to blockchain
+      // Send transaction to blockchain
       const result = await this.tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
@@ -175,38 +101,20 @@ class TPollsContractSimple {
         ]
       });
       
-      // Step 4: Wait a bit and verify poll creation
+      // Wait and verify poll creation
       await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
       
       const verification = await this.verifyPollCreation(transactionData.nextPollId);
-      
-      // Step 5: Store metadata in backend only after successful blockchain submission
-      if (this.isBackendAvailable && verification.success) {
-        try {
-          // Create poll metadata object from pollData
-          const pollMetadata = aiData || {
-            subject: pollData.title || pollData.subject || 'New Poll',
-            description: pollData.description || 'No description provided',
-            options: pollOptions, // Use the actual options sent to blockchain
-            category: pollData.category || 'other',
-            originalPrompt: pollData.prompt || 'Manual poll creation'
-          };
-          
-          await this._storePollMetadata(transactionData.nextPollId, result.boc, pollMetadata);
-        } catch (metadataError) {
-          console.error('Poll created on blockchain but metadata storage failed:', metadataError);
-        }
-      }
       
       return {
         success: true,
         pollId: transactionData.nextPollId,
         transactionHash: result.boc,
-        aiGenerated: !!aiData,
+        aiGenerated: false,
         verified: verification.success,
         verificationMessage: verification.message,
         pollData: verification.pollData,
-        metadataStored: this.isBackendAvailable && verification.success,
+        metadataStored: false,
         message: verification.success 
           ? `Poll ${transactionData.nextPollId} created and verified on blockchain`
           : `Poll ${transactionData.nextPollId} transaction sent (verification: ${verification.message})`
@@ -290,9 +198,10 @@ class TPollsContractSimple {
       
       // Build CreatePoll message payload with subject and options
       const messageBody = beginCell()
-        .storeUint(1810031829, 32) // Updated CreatePoll operation code from new contract
+        .storeUint(1052480048, 32) // CreatePoll operation code for deployed contract
         .storeStringRefTail(pollSubject || '') // Store poll subject as string
         .storeDict(optionsDict) // Store options dictionary
+        .storeUint(0, 257) // Reward per vote (0 for no rewards)
         .endCell();
 
       const payload = messageBody.toBoc().toString('base64');
@@ -309,38 +218,6 @@ class TPollsContractSimple {
     }
   }
 
-  /**
-   * Store poll metadata after blockchain creation
-   */
-  async _storePollMetadata(pollId, transactionHash, aiData) {
-    try {
-      const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/polls/store-metadata`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          blockchainPollId: pollId,
-          transactionHash,
-          contractAddress: this.contractAddress,
-          aiData,
-          pollData: {
-            optionCount: aiData.options ? aiData.options.length : 2
-          },
-          createdBy: this.tonConnectUI.account?.address
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Backend responded with ${response.status}`);
-      }
-
-      const data = await response.json();
-      // Poll metadata stored successfully
-      return data;
-    } catch (error) {
-      console.error('Error storing poll metadata:', error);
-      throw error;
-    }
-  }
 
   /**
    * Vote on a poll
@@ -376,14 +253,7 @@ class TPollsContractSimple {
 
       // Vote transaction sent
 
-      // Confirm vote with backend
-      if (this.isBackendAvailable) {
-        try {
-          await this._confirmVote(voteData.voteId, result.boc);
-        } catch (confirmError) {
-          // Failed to confirm vote with backend
-        }
-      }
+      // Blockchain-only service - no vote confirmation with backend
 
       return {
         success: true,
@@ -420,8 +290,8 @@ class TPollsContractSimple {
       // Build Vote message payload
       const messageBody = beginCell()
         .storeUint(1011836453, 32) // Vote operation code from ABI
-        .storeInt(pollId, 257)
-        .storeInt(optionIndex, 257)
+        .storeUint(pollId, 257) // Changed from storeInt to storeUint for consistency
+        .storeUint(optionIndex, 257) // Changed from storeInt to storeUint for consistency
         .endCell();
 
       const payload = messageBody.toBoc().toString('base64');
@@ -441,27 +311,6 @@ class TPollsContractSimple {
     }
   }
 
-  /**
-   * Confirm vote with backend
-   */
-  async _confirmVote(voteId, txHash) {
-    try {
-      const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/votes/confirm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voteId, txHash }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Vote confirmed with backend
-        return data;
-      }
-    } catch (error) {
-      console.error('Error confirming vote:', error);
-      throw error;
-    }
-  }
 
   /**
    * Get a specific poll from smart contract
@@ -575,6 +424,19 @@ class TPollsContractSimple {
         // Could not get poll details, using defaults
       }
       
+      // Get vote counts from contract
+      let totalVotes = 0;
+      try {
+        const totalVotersResult = await this.client.runMethod(contractAddress, 'getPollTotalVoters', [
+          { type: 'int', value: BigInt(pollId) }
+        ]);
+        if (totalVotersResult.stack && totalVotersResult.stack.remaining > 0) {
+          totalVotes = Number(totalVotersResult.stack.readBigNumber());
+        }
+      } catch (voteError) {
+        // Could not get vote count, using 0
+      }
+
       // Create transformed poll object using the same format as getActivePolls
       const transformedPoll = {
         id: pollId,
@@ -583,8 +445,8 @@ class TPollsContractSimple {
         options: pollOptions,
         category: 'general',
         author: this._formatAddress(pollCreator),
-        totalVotes: 0, // Would need additional contract call to get vote counts
-        totalResponses: 0,
+        totalVotes: totalVotes,
+        totalResponses: totalVotes,
         isActive: true,
         createdAt: 'Unknown',
         type: 'simple-blockchain',
@@ -606,29 +468,6 @@ class TPollsContractSimple {
     }
   }
 
-  /**
-   * Get poll metadata from database (helper method)
-   * @private
-   */
-  async _getPollMetadata(pollId) {
-    if (!this.isBackendAvailable) {
-      return null;
-    }
-    
-    try {
-      const response = await fetch(`${this.apiBaseUrl}/database/polls/${pollId}/metadata`);
-      if (response.ok) {
-        const data = await response.json();
-        // Database controller returns nested metadata: { blockchain: ..., ai: ... }
-        // We want the AI data for poll details like subject, description, etc.
-        return data.success ? data.metadata?.ai : null;
-      }
-    } catch (error) {
-      // Metadata not available, continue without it
-    }
-    
-    return null;
-  }
 
   /**
    * Get all active polls
@@ -770,6 +609,19 @@ class TPollsContractSimple {
             // Could not get poll details, using defaults
           }
               
+          // Get vote counts from contract
+          let totalVotes = 0;
+          try {
+            const totalVotersResult = await this.client.runMethod(contractAddress, 'getPollTotalVoters', [
+              { type: 'int', value: BigInt(pollId) }
+            ]);
+            if (totalVotersResult.stack && totalVotersResult.stack.remaining > 0) {
+              totalVotes = Number(totalVotersResult.stack.readBigNumber());
+            }
+          } catch (voteError) {
+            // Could not get vote count, using 0
+          }
+
           // Create a transformed poll object
           const transformedPoll = {
             id: pollId,
@@ -778,8 +630,8 @@ class TPollsContractSimple {
             options: pollOptions,
             category: 'general',
             author: this._formatAddress(pollCreator),
-            totalVotes: 0, // We'll calculate this later if needed
-            totalResponses: 0,
+            totalVotes: totalVotes,
+            totalResponses: totalVotes,
             isActive: true,
             createdAt: 'Unknown',
             type: 'simple-blockchain',
@@ -808,26 +660,92 @@ class TPollsContractSimple {
   }
 
   /**
-   * Get poll results
+   * Get poll results directly from blockchain
    * @param {number} pollId - Poll ID
    * @returns {Promise<Object>} Poll results
    */
   async getPollResults(pollId) {
-    if (this.isBackendAvailable) {
+    // Direct contract call only
+    if (!this.client) {
+      // Initialize TON client if not already done
       try {
-        const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/polls/${pollId}/results`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            return data;
-          }
-        }
+        const network = import.meta.env.VITE_TON_NETWORK || 'testnet';
+        const toncenterEndpoint = import.meta.env.VITE_TONCENTER_ENDPOINT ||
+          (network === 'testnet'
+            ? 'https://testnet.toncenter.com/api/v2/jsonRPC'
+            : 'https://toncenter.com/api/v2/jsonRPC');
+
+        this.client = new TonClient({
+          endpoint: toncenterEndpoint,
+          apiKey: import.meta.env.VITE_TONCENTER_API_KEY
+        });
       } catch (error) {
-        console.warn('Failed to get poll results from backend:', error);
+        console.error('Failed to initialize TON client:', error);
+        throw new Error('TON client not available for direct blockchain interaction');
       }
     }
 
-    throw new Error('Poll results not available');
+    try {
+      const contractAddress = Address.parse(this.contractAddress);
+      
+      // Get poll data first to get options
+      const poll = await this.getPoll(pollId);
+      if (!poll) {
+        throw new Error(`Poll ${pollId} not found`);
+      }
+
+      // Get vote results from contract
+      const resultsResponse = await this.client.runMethod(contractAddress, 'getPollResults', [
+        { type: 'int', value: BigInt(pollId) }
+      ]);
+
+      let voteResults = {};
+      let totalVotes = 0;
+
+      // Parse vote results from contract response
+      if (resultsResponse.stack && resultsResponse.stack.remaining > 0) {
+        try {
+          const resultsCell = resultsResponse.stack.readCellOpt();
+          if (resultsCell) {
+            // The results are stored as a dictionary of Int -> Int (optionIndex -> voteCount)
+            const resultsDict = Dictionary.loadDirect(
+              Dictionary.Keys.BigInt(257),
+              Dictionary.Values.BigInt(257),
+              resultsCell
+            );
+
+            // Convert dictionary to object and calculate total votes
+            for (let i = 0; i < poll.options.length; i++) {
+              const votes = resultsDict.get(BigInt(i));
+              const voteCount = votes ? Number(votes) : 0;
+              voteResults[i] = voteCount;
+              totalVotes += voteCount;
+            }
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse vote results, using empty results:', parseError);
+        }
+      }
+
+      // Transform results to match frontend expectations
+      const options = poll.options.map((optionText, index) => ({
+        id: index,
+        text: optionText,
+        votes: voteResults[index] || 0
+      }));
+
+      return {
+        success: true,
+        totalVotes,
+        options,
+        pollId: poll.id,
+        poll: poll
+      };
+
+    } catch (error) {
+      console.error('Error getting poll results from contract:', error);
+      throw new Error(`Failed to get poll results: ${error.message}`);
+    }
   }
 
   /**
@@ -881,29 +799,74 @@ class TPollsContractSimple {
 
 
   /**
-   * Get contract statistics
+   * Check if user has already voted on a poll
+   * @param {number} pollId - Poll ID
+   * @param {string} voterAddress - Voter's wallet address
+   * @returns {Promise<boolean>} True if user has voted
    */
-  async getContractStats() {
-    if (this.isBackendAvailable) {
-      try {
-        const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/stats`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            return data.stats;
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to get contract stats:', error);
-      }
+  async hasUserVoted(pollId, voterAddress) {
+    if (!this.client) {
+      throw new Error('TON client not initialized');
     }
 
-    return {
-      totalPolls: 0,
-      activePolls: 0,
-      nextPollId: 1,
-      contractAddress: this.contractAddress
-    };
+    try {
+      const contractAddress = Address.parse(this.contractAddress);
+      const voterAddr = Address.parse(voterAddress);
+      
+      // Create a proper cell with the address for the slice parameter
+      const addressCell = beginCell().storeAddress(voterAddr).endCell();
+      
+      const result = await this.client.runMethod(contractAddress, 'hasVoted', [
+        { type: 'int', value: BigInt(pollId) },
+        { type: 'slice', cell: addressCell }
+      ]);
+
+      if (result.stack && result.stack.remaining > 0) {
+        const hasVoted = result.stack.readBoolean();
+        return hasVoted;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking if user has voted:', error);
+      // Default to false to allow voting if check fails
+      return false;
+    }
+  }
+
+  /**
+   * Get contract statistics from blockchain
+   */
+  async getContractStats() {
+    // Blockchain-only implementation
+    try {
+      if (!this.client) {
+        throw new Error('TON client not initialized');
+      }
+      
+      const contractAddress = Address.parse(this.contractAddress);
+      const result = await this.client.runMethod(contractAddress, 'getPollCount');
+      
+      let totalPolls = 0;
+      if (result.stack && result.stack.items.length > 0) {
+        totalPolls = Number(result.stack.items[0].value);
+      }
+      
+      return {
+        totalPolls,
+        activePolls: totalPolls, // All polls are considered active
+        nextPollId: totalPolls + 1,
+        contractAddress: this.contractAddress
+      };
+    } catch (error) {
+      console.warn('Failed to get contract stats from blockchain:', error);
+      return {
+        totalPolls: 0,
+        activePolls: 0,
+        nextPollId: 1,
+        contractAddress: this.contractAddress
+      };
+    }
   }
 
   /**
