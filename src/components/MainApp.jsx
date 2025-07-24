@@ -60,19 +60,55 @@ function MainApp({ isConnected, onLogout, onRerunGettingStarted, onPollSelect })
     try {
       setIsLoading(true);
       
-      // Use dedicated API service for featured polls
-      console.log('⚡ Loading featured polls via TPolls API...');
-      const featuredPolls = await tpollsApi.getFeaturedPolls(2);
+      // Step 1: Get featured poll IDs from API
+      console.log('⚡ Loading featured poll IDs via TPolls API...');
+      const featuredPollIds = await tpollsApi.getFeaturedPollIds(2);
+      console.log('featuredPollIds', featuredPollIds);
       
-      // Transform poll data using the universal transformer
-      const contractType = USE_SIMPLE_CONTRACT ? 'simple' : 'complex';
-      const transformedPolls = featuredPolls.map(poll => transformPollForUI(poll, contractType));
+      if (!featuredPollIds || featuredPollIds.length === 0) {
+        console.log('No featured poll IDs found');
+        setFeaturedPolls([]);
+        return;
+      }
       
-      setFeaturedPolls(transformedPolls);
+      // Validate poll IDs
+      const validPollIds = featuredPollIds.filter(id => id !== undefined && id !== null && !isNaN(id));
+      if (validPollIds.length === 0) {
+        console.warn('No valid poll IDs found in:', featuredPollIds);
+        setFeaturedPolls([]);
+        return;
+      }
       
-      console.log(`✅ Loaded ${transformedPolls.length} featured polls via TPolls API`);
+      console.log('Valid poll IDs:', validPollIds);
+      
+      // Step 2: Iterate through poll IDs and get poll details from blockchain
+      console.log('🔗 Fetching poll details from blockchain...');
+      const featuredPolls = [];
+      
+      for (const pollId of featuredPollIds) {
+        try {
+          console.log(`📊 Getting poll ${pollId} from blockchain...`);
+          const pollData = await contractService.getPoll(pollId);
+          
+          if (pollData) {
+            // Transform poll data using the universal transformer
+            const contractType = USE_SIMPLE_CONTRACT ? 'simple' : 'complex';
+            const transformedPoll = transformPollForUI(pollData, contractType);
+            featuredPolls.push(transformedPoll);
+            console.log(`✅ Added poll ${pollId}: "${transformedPoll.title}"`);
+          } else {
+            console.warn(`⚠️ Poll ${pollId} not found on blockchain`);
+          }
+        } catch (pollError) {
+          console.error(`❌ Error fetching poll ${pollId}:`, pollError.message);
+        }
+      }
+      
+      setFeaturedPolls(featuredPolls);
+      console.log(`✅ Loaded ${featuredPolls.length} featured polls via serial API+Blockchain approach`);
+      
     } catch (error) {
-      console.error('Error loading featured polls from TPolls API:', error);
+      console.error('Error loading featured poll IDs from TPolls API:', error);
       // Set empty array if API fails
       setFeaturedPolls([]);
     } finally {
