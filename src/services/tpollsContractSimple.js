@@ -21,9 +21,7 @@ class TPollsContractSimple {
     this.isBlockchainAvailable = false;
     
     
-    console.log(`SimpleTpolls Service initialized:`);
-    console.log(`- API: ${this.apiBaseUrl}/simple-blockchain`);
-    console.log(`- Contract: ${this.contractAddress}`);
+    // Service initialized
     
     // Test backend availability
     this._testBackendConnection();
@@ -37,17 +35,12 @@ class TPollsContractSimple {
       const response = await fetch(`${this.apiBaseUrl}/../health`);
       if (response.ok) {
         this.isBackendAvailable = true;
-        console.log('✅ Backend API available for SimpleTpolls');
-        
-        // Test simple blockchain status
         await this._testSimpleBlockchainStatus();
       } else {
         this.isBackendAvailable = false;
-        console.warn('⚠️ Backend API not available for SimpleTpolls');
       }
     } catch (error) {
       this.isBackendAvailable = false;
-      console.warn('⚠️ SimpleTpolls backend connection failed:', error.message);
     }
   }
 
@@ -60,11 +53,9 @@ class TPollsContractSimple {
       if (response.ok) {
         const data = await response.json();
         this.isBlockchainAvailable = data.success && data.status.deployed;
-        console.log('✅ Simple blockchain available:', data.status);
       }
     } catch (error) {
       this.isBlockchainAvailable = false;
-      console.warn('⚠️ Simple blockchain connection failed:', error.message);
     }
   }
 
@@ -92,9 +83,8 @@ class TPollsContractSimple {
         apiKey: import.meta.env.VITE_TONCENTER_API_KEY
       });
       
-      console.log('SimpleTpolls TonClient initialized');
+      // TonClient initialized
     } catch (error) {
-      console.warn('Failed to initialize SimpleTpolls TonClient:', error);
       this.client = null;
     }
   }
@@ -158,7 +148,7 @@ class TPollsContractSimple {
       let aiData = null;
       
       if (pollData.prompt) {
-        console.log('Generating AI poll content...');
+        // Generating AI poll content
         // Import the API service dynamically to avoid circular dependencies
         const { default: tpollsApi } = await import('./tpollsApi.js');
         const aiResult = await tpollsApi.createAIPoll(pollData.prompt);
@@ -169,7 +159,6 @@ class TPollsContractSimple {
       }
       
       // Step 2: Create poll transaction for blockchain
-      console.log('Creating poll on blockchain...');
       const pollSubject = aiData?.subject || pollData.subject || pollData.title || 'New Poll';
       const pollOptions = aiData?.options || pollData.options || Array.from({ length: optionCount }, (_, i) => `Option ${i + 1}`);
       const transactionData = await this._createPollTransaction(pollOptions, pollData.createdBy, pollSubject);
@@ -186,20 +175,14 @@ class TPollsContractSimple {
         ]
       });
       
-      console.log('Poll creation transaction sent:', result);
-      
       // Step 4: Wait a bit and verify poll creation
-      console.log('Waiting for blockchain confirmation...');
       await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
       
       const verification = await this.verifyPollCreation(transactionData.nextPollId);
-      console.log('Poll creation verification:', verification);
       
       // Step 5: Store metadata in backend only after successful blockchain submission
       if (this.isBackendAvailable && verification.success) {
         try {
-          console.log('Blockchain submission verified, storing metadata...');
-          
           // Create poll metadata object from pollData
           const pollMetadata = aiData || {
             subject: pollData.title || pollData.subject || 'New Poll',
@@ -210,12 +193,9 @@ class TPollsContractSimple {
           };
           
           await this._storePollMetadata(transactionData.nextPollId, result.boc, pollMetadata);
-          console.log('Poll metadata stored successfully in backend');
         } catch (metadataError) {
           console.error('Poll created on blockchain but metadata storage failed:', metadataError);
         }
-      } else if (!verification.success) {
-        console.warn('Blockchain submission not verified, skipping metadata storage');
       }
       
       return {
@@ -264,10 +244,10 @@ class TPollsContractSimple {
         const contractAddress = Address.parse(this.contractAddress);
         const contractState = await this.client.getContractState(contractAddress);
         if (contractState.state !== 'active') {
-          console.warn(`Contract state is ${contractState.state}, proceeding with transaction anyway`);
+          // Contract state not active, proceeding anyway
         }
       } catch (stateError) {
-        console.warn('Could not check contract state:', stateError.message);
+        // Could not check contract state
       }
 
       // Generate poll ID - use timestamp to avoid conflicts since contract may not have getNextPollId method
@@ -279,14 +259,14 @@ class TPollsContractSimple {
         const result = await this.client.runMethod(contractAddress, 'getNextPollId');
         if (result.stack && result.stack.items.length > 0) {
           nextPollId = Number(result.stack.items[0].value);
-          console.log('Retrieved next poll ID from contract:', nextPollId);
+          // Retrieved next poll ID from contract
         } else {
           throw new Error('No poll ID returned from contract');
         }
       } catch (error) {
         // Contract method doesn't exist or failed - use timestamp-based ID
         nextPollId = Math.floor(Date.now() / 1000);
-        console.log('Contract getNextPollId method not available, using timestamp-based ID:', nextPollId);
+        // Contract getNextPollId method not available, using timestamp-based ID
         
         // Try alternative method names that might exist
         try {
@@ -294,10 +274,10 @@ class TPollsContractSimple {
           const totalPolls = await this.client.runMethod(contractAddress, 'getPollCount');
           if (totalPolls.stack && totalPolls.stack.items.length > 0) {
             nextPollId = Number(totalPolls.stack.items[0].value) + 1;
-            console.log('Retrieved next poll ID from getPollCount:', nextPollId);
+            // Retrieved next poll ID from getPollCount
           }
         } catch (totalError) {
-          console.log('getPollCount method also not available, sticking with timestamp ID');
+          // getPollCount method also not available, sticking with timestamp ID
         }
       }
 
@@ -354,7 +334,7 @@ class TPollsContractSimple {
       }
 
       const data = await response.json();
-      console.log('Poll metadata stored successfully:', data);
+      // Poll metadata stored successfully
       return data;
     } catch (error) {
       console.error('Error storing poll metadata:', error);
@@ -394,14 +374,14 @@ class TPollsContractSimple {
         ]
       });
 
-      console.log('Vote transaction sent:', result);
+      // Vote transaction sent
 
       // Confirm vote with backend
       if (this.isBackendAvailable) {
         try {
           await this._confirmVote(voteData.voteId, result.boc);
         } catch (confirmError) {
-          console.warn('Failed to confirm vote with backend:', confirmError);
+          // Failed to confirm vote with backend
         }
       }
 
@@ -474,7 +454,7 @@ class TPollsContractSimple {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Vote confirmed with backend:', data);
+        // Vote confirmed with backend
         return data;
       }
     } catch (error) {
@@ -484,26 +464,170 @@ class TPollsContractSimple {
   }
 
   /**
-   * Get a specific poll
+   * Get a specific poll from smart contract
    * @param {number} pollId - Poll ID
    * @returns {Promise<Object>} Poll data
    */
   async getPoll(pollId) {
-    if (this.isBackendAvailable) {
+    if (!this.client) {
+      // Initialize TON client if not already done
       try {
-        const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/polls/${pollId}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            return this._transformPollData(data.poll);
-          }
-        }
+        const network = import.meta.env.VITE_TON_NETWORK || 'testnet';
+        const toncenterEndpoint = import.meta.env.VITE_TONCENTER_ENDPOINT ||
+          (network === 'testnet'
+            ? 'https://testnet.toncenter.com/api/v2/jsonRPC'
+            : 'https://toncenter.com/api/v2/jsonRPC');
+
+        this.client = new TonClient({
+          endpoint: toncenterEndpoint,
+          apiKey: import.meta.env.VITE_TONCENTER_API_KEY
+        });
+        
+        // TON client initialized for getPoll
       } catch (error) {
-        console.warn('Failed to get poll from backend:', error);
+        console.error('Failed to initialize TON client:', error);
+        throw new Error('TON client not available for direct blockchain interaction');
       }
     }
 
-    throw new Error('Poll data not available');
+    try {
+      const contractAddress = Address.parse(this.contractAddress);
+      
+      // First, try to get options directly using the poll ID (same approach as getActivePolls)
+      let pollOptions = [];
+      let pollSubject = `Poll ${pollId}`;
+      let pollCreator = 'Unknown';
+      
+      // Attempting to fetch options directly
+      try {
+        const optionsResult = await this.client.runMethod(contractAddress, 'getPollOptions', [
+          { type: 'int', value: BigInt(pollId) }
+        ]);
+        
+        // Handle both exit_code formats (0 or undefined for success)
+        const isSuccess = (optionsResult.exit_code === 0 || optionsResult.exit_code === undefined) && 
+                         optionsResult.stack && optionsResult.stack.remaining > 0;
+        
+        if (isSuccess) {
+          const optionsCell = optionsResult.stack.readCellOpt();
+          if (optionsCell) {
+            const optionsDict = Dictionary.loadDirect(
+              Dictionary.Keys.BigInt(257), 
+              Dictionary.Values.Cell(), 
+              optionsCell
+            );
+            
+            pollOptions = [];
+            for (let i = 0; i < optionsDict.size; i++) {
+              const optionCell = optionsDict.get(BigInt(i));
+              if (optionCell) {
+                const optionText = optionCell.beginParse().loadStringTail();
+                pollOptions.push(optionText);
+              }
+            }
+            // Retrieved options successfully
+          }
+        }
+      } catch (optionsError) {
+        // This poll might not exist or have no options
+        throw new Error(`Poll ${pollId} not found or has no options`);
+      }
+      
+      // Only proceed if we got options (meaning the poll exists)
+      if (pollOptions.length === 0) {
+        throw new Error(`Poll ${pollId} not found`);
+      }
+      
+      // Now try to get additional poll info (subject, creator)
+      try {
+        const pollResult = await this.client.runMethod(contractAddress, 'getPoll', [
+          { type: 'int', value: BigInt(pollId) }
+        ]);
+        
+        if (pollResult.stack && pollResult.stack.remaining > 0) {
+          try {
+            const pollTuple = pollResult.stack.readTupleOpt();
+            if (pollTuple) {
+              const parsedPollId = Number(pollTuple.items[0]);
+              const creator = pollTuple.items[1];
+              // Parse subject (position 2 in the tuple) using direct access
+              let subject = 'No subject';
+              try {
+                if (pollTuple.items[2]?.type === 'cell') {
+                  const subjectSlice = pollTuple.items[2].cell.beginParse();
+                  subject = subjectSlice.loadStringTail();
+                } else {
+                  const subjectSlice = pollTuple.items[2].beginParse();
+                  subject = subjectSlice.loadStringTail();
+                }
+              } catch (e) {
+                // Failed to parse subject from getPoll
+              }
+              
+              pollSubject = subject || `Poll ${pollId}`;
+              pollCreator = creator.toString();
+            }
+          } catch (parseError) {
+            // Could not parse poll details, using defaults
+          }
+        }
+      } catch (pollError) {
+        // Could not get poll details, using defaults
+      }
+      
+      // Create transformed poll object using the same format as getActivePolls
+      const transformedPoll = {
+        id: pollId,
+        title: pollSubject,
+        description: 'Direct contract poll',
+        options: pollOptions,
+        category: 'general',
+        author: this._formatAddress(pollCreator),
+        totalVotes: 0, // Would need additional contract call to get vote counts
+        totalResponses: 0,
+        isActive: true,
+        createdAt: 'Unknown',
+        type: 'simple-blockchain',
+        optionCount: pollOptions.length,
+        hasAiData: false,
+        subject: pollSubject,
+        // Compatibility fields for UI
+        totalRewardFund: '0 TON',
+        daysRemaining: 0,
+        gaslessEnabled: false,
+        rewardPerVote: '0'
+      };
+      
+      return transformedPoll;
+      
+    } catch (error) {
+      console.error(`Error getting poll ${pollId} from contract:`, error);
+      throw new Error(`Failed to get poll ${pollId}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get poll metadata from database (helper method)
+   * @private
+   */
+  async _getPollMetadata(pollId) {
+    if (!this.isBackendAvailable) {
+      return null;
+    }
+    
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/database/polls/${pollId}/metadata`);
+      if (response.ok) {
+        const data = await response.json();
+        // Database controller returns nested metadata: { blockchain: ..., ai: ... }
+        // We want the AI data for poll details like subject, description, etc.
+        return data.success ? data.metadata?.ai : null;
+      }
+    } catch (error) {
+      // Metadata not available, continue without it
+    }
+    
+    return null;
   }
 
   /**
@@ -525,7 +649,7 @@ class TPollsContractSimple {
           apiKey: import.meta.env.VITE_TONCENTER_API_KEY
         });
         
-        console.log('TON client initialized for getActivePolls');
+        // TON client initialized for getActivePolls
       } catch (error) {
         console.error('Failed to initialize TON client:', error);
         throw new Error('TON client not available for direct blockchain interaction');
@@ -543,7 +667,7 @@ class TPollsContractSimple {
           totalPolls = Number(result.stack.items[0].value);
         }
       } catch (error) {
-        console.warn('Could not get total polls count, trying alternative approach:', error);
+        // Could not get total polls count, trying alternative approach
         // If getPollCount doesn't exist, try to get contract stats
         try {
           const statsResult = await this.client.runMethod(contractAddress, 'getContractStats');
@@ -551,8 +675,7 @@ class TPollsContractSimple {
             totalPolls = Number(statsResult.stack.items[0].value);
           }
         } catch (statsError) {
-          console.warn('Could not get contract stats either, using fallback approach');
-          // Fallback: try to get polls starting from ID 1 until we fail
+          // Could not get contract stats either, using fallback approach
           totalPolls = 100; // reasonable upper limit for scanning
         }
       }
@@ -567,7 +690,7 @@ class TPollsContractSimple {
           let pollSubject = `Poll ${pollId}`;
           let pollCreator = 'Unknown';
           
-          console.log(`Attempting to fetch options directly for poll ${pollId}`);
+          // Attempting to fetch options directly
           try {
             const optionsResult = await this.client.runMethod(contractAddress, 'getPollOptions', [
               { type: 'int', value: BigInt(pollId) }
@@ -594,11 +717,10 @@ class TPollsContractSimple {
                     pollOptions.push(optionText);
                   }
                 }
-                console.log(`✅ Retrieved ${pollOptions.length} options for poll ${pollId}:`, pollOptions);
+                // Retrieved options successfully
               }
             }
           } catch (optionsError) {
-            console.log(`⚠️ Could not get options for poll ${pollId}: ${optionsError.message}`);
             // This poll might not exist or have no options, skip it
             continue;
           }
@@ -613,21 +735,14 @@ class TPollsContractSimple {
             const pollResult = await this.client.runMethod(contractAddress, 'getPoll', [
               { type: 'int', value: BigInt(pollId) }
             ]);
-            console.log('pollResult for poll', pollId, ':', pollResult)
-            console.log('pollResult.stack:', pollResult.stack)
-            console.log('pollResult.stack.remaining:', pollResult.stack?.remaining)
+            // Debug poll result structure
             
             if (pollResult.stack && pollResult.stack.remaining > 0) {
               try {
                 const pollTuple = pollResult.stack.readTupleOpt();
-                console.log('pollTuple:', pollTuple)
-                console.log('pollTuple.remaining:', pollTuple?.remaining)
                 if (pollTuple) {
                   const parsedPollId = Number(pollTuple.items[0]);
-                  console.log('parsedPollId:', parsedPollId)
                   const creator = pollTuple.items[1];
-                  console.log('creator:', creator)
-                  console.log('pollTuple.remaining before subject:', pollTuple.remaining)
                   // Parse subject (position 2 in the tuple) using direct access
                   let subject = 'No subject';
                   try {
@@ -639,21 +754,20 @@ class TPollsContractSimple {
                       subject = subjectSlice.loadStringTail();
                     }
                   } catch (e) {
-                    console.warn('Failed to parse subject from getPoll:', e.message);
+                    // Failed to parse subject from getPoll
                   }
-                  console.log('subject read:', subject)
                   
                   pollSubject = subject || `Poll ${pollId}`;
                   pollCreator = creator.toString();
                   
-                  console.log(`✅ Retrieved poll info for ${parsedPollId}: "${pollSubject}"`);
+                  // Retrieved poll info successfully
                 }
               } catch (parseError) {
-                console.log(`⚠️ Could not parse poll details for ${pollId}, using defaults:`, parseError.message);
+                // Could not parse poll details, using defaults
               }
             }
           } catch (pollError) {
-            console.log(`⚠️ Could not get poll details for ${pollId}, using defaults:`, pollError.message);
+            // Could not get poll details, using defaults
           }
               
           // Create a transformed poll object
@@ -680,15 +794,11 @@ class TPollsContractSimple {
           };
           
           activePolls.push(transformedPoll);
-          console.log(`✅ Added poll ${pollId} with ${pollOptions.length} options to active polls`);
         } catch (pollError) {
           // Poll doesn't exist or error accessing it, continue to next
-          console.log(`Poll ${pollId} not accessible:`, pollError.message);
           continue;
         }
       }
-
-      console.log(`Found ${activePolls.length} active polls via direct contract call`);
       return activePolls;
       
     } catch (error) {
@@ -915,7 +1025,7 @@ class TPollsContractSimple {
         }
         
         // If we still don't have a poll ID, we'll need to handle this in getActivePolls
-        console.log('Extracted poll ID:', pollId);
+        // Extracted poll ID
         
         // Parse creator address from cell
         let creator = null;
@@ -924,9 +1034,8 @@ class TPollsContractSimple {
           const creatorAddress = creatorSlice.loadAddress();
           creator = creatorAddress.toString();
         } catch (e) {
-          console.warn('Failed to parse creator address:', e);
+          // Failed to parse creator address
         }
-        console.log('creator', creator)
         
         // Parse subject string from cell
         let subject = 'No subject';
@@ -939,9 +1048,8 @@ class TPollsContractSimple {
             subject = subjectSlice.loadStringTail();
           }
         } catch (e) {
-          console.warn('Failed to parse subject string:', e);
+          // Failed to parse subject string
         }
-        console.log('subject', subject)
         
         // Parse options dictionary from cell
         const options = [];
@@ -961,9 +1069,9 @@ class TPollsContractSimple {
                 options.push(optionText);
               }
             }
-            console.log('parsed options:', options);
+            // Parsed options successfully
           } catch (e) {
-            console.warn('Failed to parse options dictionary:', e);
+            // Failed to parse options dictionary
           }
         }
         
@@ -974,7 +1082,7 @@ class TPollsContractSimple {
             // Dictionary parsing would go here
             // For now, we'll leave it empty as Dictionary parsing is complex
           } catch (e) {
-            console.warn('Failed to parse results dictionary:', e);
+            // Failed to parse results dictionary
           }
         }
         

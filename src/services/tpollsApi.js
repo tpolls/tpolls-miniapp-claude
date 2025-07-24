@@ -7,11 +7,6 @@ class TPollsApiService {
     this.apiBaseUrl = import.meta.env.VITE_TPOLLS_API || 'https://tpolls-api.onrender.com/api';
     this.isAvailable = false;
     
-    // Cache for featured polls
-    this.featuredPollsCache = null;
-    this.featuredPollsCacheTime = 0;
-    this.FEATURED_POLLS_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
-    
     console.log(`TPolls API Service initialized: ${this.apiBaseUrl}`);
     
     // Test API availability
@@ -38,33 +33,26 @@ class TPollsApiService {
   }
 
   /**
-   * Get featured polls from backend API (optimized for UI)
-   * @param {number} limit - Maximum number of polls to return (default: 2)
+   * Get featured poll IDs from backend API (optimized for UI)
+   * @param {number} limit - Maximum number of poll IDs to return (default: 2)
    * @param {string} category - Optional category filter
-   * @returns {Promise<Array>} Array of featured polls
+   * @returns {Promise<Array>} Array of featured poll IDs
    */
-  async getFeaturedPolls(limit = 2, category = null) {
-    // Check cache first
-    const now = Date.now();
-    if (this.featuredPollsCache && (now - this.featuredPollsCacheTime) < this.FEATURED_POLLS_CACHE_DURATION) {
-      console.log('⚡ Returning cached featured polls');
-      return this.featuredPollsCache.slice(0, limit);
-    }
-
+  async getFeaturedPollIds(limit = 2, category = null) {
     if (!this.isAvailable) {
-      console.warn('⚠️ TPolls API not available for featured polls');
+      console.warn('⚠️ TPolls API not available for featured poll IDs');
       throw new Error('TPolls API not available');
     }
 
     try {
-      console.log('🚀 Fetching featured polls from backend API...');
+      console.log('🚀 Fetching featured poll IDs from backend API...');
       
       const params = new URLSearchParams({ limit: limit.toString() });
       if (category) {
         params.append('category', category);
       }
       
-      const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/polls/featured?${params}`);
+      const response = await fetch(`${this.apiBaseUrl}/database/polls/featured?${params}`);
       
       if (!response.ok) {
         throw new Error(`API responded with ${response.status}: ${response.statusText}`);
@@ -76,14 +64,15 @@ class TPollsApiService {
         throw new Error(data.message || 'API request failed');
       }
       
-      const featuredPolls = data.polls || [];
+      // Extract just the poll IDs from the response
+      // Database controller returns FeaturedPoll objects with blockchainPollId field
+      const featuredPollIds = (data.polls || []).map(poll => {
+        return poll.blockchainPollId;
+      }).filter(id => id !== undefined && id !== null && !isNaN(id));
       
-      // Cache the results
-      this.featuredPollsCache = featuredPolls;
-      this.featuredPollsCacheTime = now;
-      
-      console.log(`✅ Loaded ${featuredPolls.length} featured polls from API`);
-      return featuredPolls;
+      console.log(`✅ Loaded ${featuredPollIds.length} featured poll IDs from API:`, featuredPollIds);
+      console.log('Raw API response polls:', data.polls);
+      return featuredPollIds;
       
     } catch (error) {
       console.error('❌ Failed to get featured polls from API:', error.message);
@@ -91,14 +80,6 @@ class TPollsApiService {
     }
   }
 
-  /**
-   * Clear featured polls cache
-   */
-  clearFeaturedPollsCache() {
-    this.featuredPollsCache = null;
-    this.featuredPollsCacheTime = 0;
-    console.log('🗑️ Featured polls cache cleared');
-  }
 
   /**
    * Get API health status
@@ -130,7 +111,7 @@ class TPollsApiService {
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/stats`);
+      const response = await fetch(`${this.apiBaseUrl}/database/stats`);
       
       if (!response.ok) {
         throw new Error(`API responded with ${response.status}`);
@@ -156,7 +137,7 @@ class TPollsApiService {
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/polls/featured`, {
+      const response = await fetch(`${this.apiBaseUrl}/database/polls/featured`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -177,9 +158,6 @@ class TPollsApiService {
 
       const data = await response.json();
       
-      // Clear cache since featured polls changed
-      this.clearFeaturedPollsCache();
-      
       return data;
       
     } catch (error) {
@@ -198,7 +176,7 @@ class TPollsApiService {
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/simple-blockchain/polls/featured/${pollId}`, {
+      const response = await fetch(`${this.apiBaseUrl}/database/polls/featured/${pollId}`, {
         method: 'DELETE'
       });
 
@@ -207,9 +185,6 @@ class TPollsApiService {
       }
 
       const data = await response.json();
-      
-      // Clear cache since featured polls changed
-      this.clearFeaturedPollsCache();
       
       return data;
       
