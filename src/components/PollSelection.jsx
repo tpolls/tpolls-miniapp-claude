@@ -5,7 +5,7 @@ import tpollsContractSimple from '../services/tpollsContractSimple';
 import './PollSelection.css';
 
 
-function PollSelection({ onBack, onPollSelect }) {
+function PollSelection({ onBack, onPollSelect, onViewResults }) {
   const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
   const [polls, setPolls] = useState([]);
@@ -67,6 +67,16 @@ function PollSelection({ onBack, onPollSelect }) {
     }
   };
 
+  const handleViewResults = (poll, event) => {
+    event.stopPropagation(); // Prevent poll selection when clicking View Results
+    if (webApp) {
+      webApp.HapticFeedback.impactOccurred('light');
+    }
+    if (onViewResults) {
+      onViewResults(poll);
+    }
+  };
+
   return (
     <div className="poll-selection-page">
       <div className="poll-selection-header">
@@ -116,6 +126,15 @@ function PollSelection({ onBack, onPollSelect }) {
                     {poll.daysRemaining > 0 ? `${poll.daysRemaining} days remaining` : poll.duration}
                   </span>
                 </div>
+              </div>
+              
+              <div className="poll-actions">
+                <button 
+                  className="view-results-btn"
+                  onClick={(e) => handleViewResults(poll, e)}
+                >
+                  📊 View Results
+                </button>
               </div>
               </div>
             ))}

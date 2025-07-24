@@ -14,6 +14,7 @@ import PollResponse from './components/PollResponse';
 import UserSettings from './components/UserSettings';
 import PollFunding from './components/PollFunding';
 import PollAdministration from './components/PollAdministration';
+import PollResults from './components/PollResults';
 import BottomNavigation from './components/BottomNavigation';
 import TelegramUIExamples from './components/examples/TelegramUIExamples';
 import TelegramUIPollCreation from './components/TelegramUIPollCreation';
@@ -31,6 +32,7 @@ import './components/PollResponse.css';
 import './components/UserSettings.css';
 import './components/PollFunding.css';
 import './components/PollAdministration.css';
+import './components/PollResults.css';
 import './components/BottomNavigation.css';
 import './components/WalletMenu.css';
 
@@ -40,6 +42,7 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
   const [selectedPoll, setSelectedPoll] = useState(null);
+  const [selectedPollForResults, setSelectedPollForResults] = useState(null);
   const [animationMode, setAnimationMode] = useState('static');
   
   // Use simple contract version - can be toggled via environment variable
@@ -171,7 +174,9 @@ function App() {
       recordPollResponse(walletAddress, responseData);
     }
     
-    setCurrentPage('main');
+    // Navigate to poll results page after successful vote submission
+    setSelectedPollForResults(selectedPoll);
+    setCurrentPage('poll-results');
   };
 
   const handleBackToPollSelection = () => {
@@ -194,6 +199,17 @@ function App() {
 
   const handleBottomNavigation = (page) => {
     setCurrentPage(page);
+  };
+
+  const handleViewResults = (poll) => {
+    console.log('View results for poll:', poll);
+    setSelectedPollForResults(poll);
+    setCurrentPage('poll-results');
+  };
+
+  const handleBackFromResults = () => {
+    setCurrentPage('poll-selection');
+    setSelectedPollForResults(null);
   };
 
   const handleManagePolls = () => {
@@ -222,7 +238,13 @@ function App() {
         )
       )}
       {currentPage === 'poll-selection' && (
-        <PollSelection onPollSelect={handlePollSelect} onBack={handleBackToRoleSelection} />
+        <PollSelection onPollSelect={handlePollSelect} onBack={handleBackToRoleSelection} onViewResults={handleViewResults} />
+      )}
+      {currentPage === 'poll-results' && (
+        <PollResults 
+          pollId={selectedPollForResults?.id} 
+          onBack={handleBackFromResults} 
+        />
       )}
       {currentPage === 'poll-response' && (
         <PollResponse poll={selectedPoll} onSubmitResponse={handlePollResponse} onBack={handleBackToPollSelection} />

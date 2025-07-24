@@ -225,6 +225,120 @@ class TPollsApiService {
       throw new Error(`Failed to create AI poll: ${error.message}`);
     }
   }
+
+  /**
+   * Store poll metadata after blockchain creation
+   * @param {number} pollId - Blockchain poll ID
+   * @param {string} transactionHash - Transaction hash
+   * @param {Object} aiData - AI-generated poll data
+   * @param {Object} pollData - Additional poll data
+   * @param {string} createdBy - Creator address
+   */
+  async storePollMetadata(pollId, transactionHash, aiData, pollData = {}, createdBy = null) {
+    if (!this.isAvailable) {
+      throw new Error('TPolls API not available for metadata storage');
+    }
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/database/polls/store-metadata`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blockchainPollId: pollId,
+          transactionHash,
+          contractAddress: null, // Will be filled by backend if needed
+          aiData,
+          pollData,
+          createdBy
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend responded with ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error storing poll metadata:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Confirm vote with backend for tracking
+   * @param {string} voteId - Vote ID for tracking
+   * @param {string} txHash - Transaction hash
+   */
+  async confirmVote(voteId, txHash) {
+    if (!this.isAvailable) {
+      console.warn('TPolls API not available for vote confirmation');
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/database/votes/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voteId, txHash }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error confirming vote:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get poll results from backend (if available)
+   * @param {number} pollId - Poll ID
+   */
+  async getPollResults(pollId) {
+    if (!this.isAvailable) {
+      throw new Error('TPolls API not available for poll results');
+    }
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/database/polls/${pollId}/results`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          return data;
+        }
+      }
+      throw new Error('Poll results not available from backend');
+    } catch (error) {
+      console.warn('Failed to get poll results from backend:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get poll metadata from database
+   * @param {number} pollId - Poll ID
+   */
+  async getPollMetadata(pollId) {
+    if (!this.isAvailable) {
+      return null;
+    }
+    
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/database/polls/${pollId}/metadata`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.success ? data.metadata?.ai : null;
+      }
+    } catch (error) {
+      console.warn('Metadata not available:', error);
+    }
+    
+    return null;
+  }
 }
 
 // Export singleton instance
