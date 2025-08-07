@@ -1,0 +1,402 @@
+.manage-polls-page {
+  min-height: 100vh;
+  padding: 20px;
+  background: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000);
+}
+
+.manage-polls-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+  gap: 16px;
+}
+
+.back-btn {
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--tg-theme-text-color, #000);
+}
+
+.back-btn:hover {
+  background: var(--tg-theme-hint-color, #f0f0f0);
+  transform: translateY(-1px);
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--tg-theme-text-color, #000);
+}
+
+.manage-polls-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Filter Tabs */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.filter-tab {
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  color: var(--tg-theme-text-color, #666);
+}
+
+.filter-tab:hover {
+  background: var(--tg-theme-hint-color, #f0f0f0);
+}
+
+.filter-tab.active {
+  background: var(--tg-theme-button-color, #007aff);
+  color: white;
+  border-color: var(--tg-theme-button-color, #007aff);
+}
+
+/* Polls List */
+.polls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.poll-card {
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 16px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.poll-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.poll-card.selected {
+  border-color: var(--tg-theme-button-color, #007aff);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+}
+
+.poll-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.poll-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--tg-theme-text-color, #000);
+  flex: 1;
+  margin-right: 12px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.poll-info {
+  margin-bottom: 16px;
+}
+
+.poll-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.info-label {
+  color: var(--tg-theme-hint-color, #666);
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--tg-theme-text-color, #000);
+  font-weight: 600;
+}
+
+.poll-options-preview {
+  margin-bottom: 16px;
+}
+
+.options-label {
+  display: block;
+  font-size: 14px;
+  color: var(--tg-theme-hint-color, #666);
+  margin-bottom: 8px;
+}
+
+.options-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.option-tag {
+  background: var(--tg-theme-bg-color, #ffffff);
+  border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--tg-theme-text-color, #666);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option-more {
+  background: var(--tg-theme-bg-color, #ffffff);
+  border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--tg-theme-text-color, #666);
+}
+
+/* Poll Actions */
+.poll-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+}
+
+.status-actions h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #000);
+}
+
+.status-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-btn.active {
+  background: #28a745;
+  color: white;
+}
+
+.status-btn.paused {
+  background: #ffc107;
+  color: #212529;
+}
+
+.status-btn.closed {
+  background: #dc3545;
+  color: white;
+}
+
+.status-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Loading and Error States */
+.loading-state, .error-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--tg-theme-hint-color, #e0e0e0);
+  border-top-color: var(--tg-theme-button-color, #007aff);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 16px;
+  font-size: 16px;
+  color: var(--tg-theme-text-color, #666);
+}
+
+.error-icon, .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-state h3, .empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #000);
+}
+
+.error-state p, .empty-state p {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  color: var(--tg-theme-text-color, #666);
+}
+
+.retry-btn {
+  background: var(--tg-theme-button-color, #007aff);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: var(--tg-theme-button-color, #007aff);
+  transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .manage-polls-page {
+    padding: 16px;
+  }
+  
+  .manage-polls-header {
+    margin-bottom: 20px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .poll-card {
+    padding: 16px;
+  }
+  
+  .poll-title {
+    font-size: 16px;
+  }
+  
+  .filter-tabs {
+    gap: 4px;
+  }
+  
+  .filter-tab {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  
+  .status-buttons {
+    flex-direction: column;
+  }
+  
+  .status-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .manage-polls-page {
+    padding: 12px;
+  }
+  
+  .poll-card {
+    padding: 12px;
+  }
+  
+  .poll-info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .poll-title {
+    font-size: 15px;
+  }
+  
+  .filter-tabs {
+    gap: 2px;
+  }
+  
+  .filter-tab {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .poll-card {
+    background: var(--tg-theme-secondary-bg-color, #2c2c2c);
+    border-color: var(--tg-theme-hint-color, #404040);
+  }
+  
+  .filter-tab {
+    background: var(--tg-theme-secondary-bg-color, #2c2c2c);
+    border-color: var(--tg-theme-hint-color, #404040);
+    color: var(--tg-theme-text-color, #e0e0e0);
+  }
+  
+  .filter-tab:hover {
+    background: var(--tg-theme-hint-color, #404040);
+  }
+  
+  .option-tag, .option-more {
+    background: var(--tg-theme-bg-color, #1c1c1c);
+    border-color: var(--tg-theme-hint-color, #404040);
+  }
+}
