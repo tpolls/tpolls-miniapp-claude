@@ -20,6 +20,69 @@ import TelegramUIExamples from './components/examples/TelegramUIExamples';
 import TelegramUIPollCreation from './components/TelegramUIPollCreation';
 import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted, resetOnboarding } from './utils/userHistory';
 import { getAnimationMode } from './utils/animationMode';
+
+// Helper function to handle Telegram start_param for deep linking
+const handleStartParam = (setCurrentPage, setSelectedPoll) => {
+  try {
+    console.log('🔍 Checking for deep linking...');
+    console.log('Window object exists:', typeof window !== 'undefined');
+    console.log('Telegram object exists:', typeof window !== 'undefined' && !!window.Telegram);
+    console.log('WebApp object exists:', typeof window !== 'undefined' && !!window.Telegram?.WebApp);
+    
+    // Check if we're in Telegram WebApp environment
+    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+      const initData = window.Telegram.WebApp.initDataUnsafe;
+      console.log('🔧 initDataUnsafe:', initData);
+      
+      if (initData && initData.start_param) {
+        const startParam = initData.start_param;
+        console.log('✅ Telegram start_param detected:', startParam);
+        
+        // Check if it's a poll deep link (format: poll_123)
+        if (startParam.startsWith('poll_')) {
+          const pollId = startParam.replace('poll_', '');
+          
+          if (pollId && !isNaN(pollId)) {
+            console.log('🎯 Deep linking to poll ID:', pollId);
+            
+            // Set the poll data for the poll response page
+            setSelectedPoll({ id: pollId });
+            
+            // Navigate to poll response page
+            setCurrentPage('poll-response');
+            
+            return true; // Indicates deep linking was handled
+          } else {
+            console.warn('⚠️ Invalid poll ID format:', pollId);
+          }
+        } else {
+          console.log('ℹ️ start_param not a poll link:', startParam);
+        }
+      } else {
+        console.log('ℹ️ No start_param found in initData');
+      }
+    } else {
+      console.log('⚠️ Not in Telegram WebApp environment');
+      
+      // For testing outside Telegram, check URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const testStartParam = urlParams.get('startapp');
+      if (testStartParam && testStartParam.startsWith('poll_')) {
+        const pollId = testStartParam.replace('poll_', '');
+        if (pollId && !isNaN(pollId)) {
+          console.log('🧪 Test mode: Deep linking to poll ID:', pollId);
+          setSelectedPoll({ id: pollId });
+          setCurrentPage('poll-response');
+          return true;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error handling Telegram start_param:', error);
+  }
+  
+  return false; // No deep linking handled
+};
 import './components/Welcome.css';
 import './components/MainApp.css';
 import './components/GettingStarted.css';
@@ -44,6 +107,7 @@ function App() {
   const [selectedPoll, setSelectedPoll] = useState(null);
   const [selectedPollForResults, setSelectedPollForResults] = useState(null);
   const [animationMode, setAnimationMode] = useState('static');
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
   
   // Use simple contract version - can be toggled via environment variable
   const useSimpleContract = import.meta.env.VITE_USE_SIMPLE_CONTRACT !== 'false';
@@ -51,6 +115,17 @@ function App() {
   useEffect(() => {
     // Load animation mode preference
     setAnimationMode(getAnimationMode());
+    
+    // Handle deep linking only once on app load
+    if (!deepLinkHandled) {
+      const wasHandled = handleStartParam(setCurrentPage, setSelectedPoll);
+      setDeepLinkHandled(true);
+      
+      // If deep linking was handled, skip the normal initialization flow
+      if (wasHandled) {
+        return;
+      }
+    }
     
     // Set up global navigation functions for MainApp
     window.navigateToExamples = () => setCurrentPage('telegram-ui-examples');
