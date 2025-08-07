@@ -518,6 +518,7 @@ class TPollsContractSimple {
           totalPolls = 100; // reasonable upper limit for scanning
         }
       }
+      totalPolls = 5;
 
       const activePolls = [];
       
