@@ -20,6 +20,7 @@ import TelegramUIExamples from './components/examples/TelegramUIExamples';
 import TelegramUIPollCreation from './components/TelegramUIPollCreation';
 import StartAppPage from './components/StartAppPage';
 import StandAlonePollResponse from './components/StandAlonePollResponse';
+import ManagePolls from './components/ManagePolls';
 import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted, resetOnboarding } from './utils/userHistory';
 import { getAnimationMode } from './utils/animationMode';
 
@@ -422,11 +423,7 @@ function App() {
         <UserSettings onBack={handleBottomNavigation} onRerunGettingStarted={handleRerunGettingStarted} onManagePolls={handleManagePolls} />
       )}
       {currentPage === 'manage-polls' && isConnected && (
-        <div style={{padding: '20px', textAlign: 'center'}}>
-          <h1>Manage Polls</h1>
-          <p>Manage Polls page coming soon!</p>
-          <button onClick={() => handleBottomNavigation('user-settings')}>← Back to Profile</button>
-        </div>
+        <ManagePolls onBack={handleBottomNavigation} />
       )}
       {currentPage === 'poll-funding' && isConnected && (
         <PollFunding onBack={handleBottomNavigation} />
