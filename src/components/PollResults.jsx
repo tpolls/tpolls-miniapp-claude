@@ -125,61 +125,46 @@ function PollResults({ onBack, pollId = null }) {
             </button>
           </div>
         ) : poll && pollResults ? (
-          <div className="results-container">
-            <div className="poll-info-card">
-              <h2 className="poll-title">{poll.title}</h2>
-              <div className="poll-stats">
-                <div className="stat-item">
-                  <span className="stat-label">Total Votes:</span>
-                  <span className="stat-value">{pollResults.totalVotes}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Status:</span>
-                  <span className={`stat-value status-${poll.status}`}>
-                    {poll.status}
-                  </span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Reward Fund:</span>
-                  <span className="stat-value">{poll.totalRewardFund}</span>
-                </div>
-              </div>
-            </div>
-
+          <div className="results-container-compact">
+            <h2 className="poll-title-compact">{poll.title}</h2>
+            
             {pollResults.totalVotes > 0 ? (
-              <div className="results-visualization">
-                <h3>Vote Distribution</h3>
-                <div className="options-results">
-                  {pollResults.options.map((option, index) => {
-                    const percentage = calculatePercentage(option.votes, pollResults.totalVotes);
-                    const isWinner = getWinningOption()?.id === option.id;
-                    
-                    return (
-                      <div key={option.id || index} className={`option-result ${isWinner ? 'winner' : ''}`}>
-                        <div className="option-header">
-                          <span className="option-text">{option.text}</span>
-                          <span className="option-percentage">{percentage}%</span>
-                          {isWinner && <span className="winner-badge">🏆</span>}
-                        </div>
-                        <div className="vote-bar-container">
-                          <div 
-                            className="vote-bar" 
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
-                        <div className="vote-count">{option.votes} votes</div>
+              <div className="options-results-compact">
+                {pollResults.options.map((option, index) => {
+                  const percentage = calculatePercentage(option.votes, pollResults.totalVotes);
+                  const isWinner = getWinningOption()?.id === option.id;
+                  
+                  return (
+                    <div key={option.id || index} className="option-result-compact">
+                      <div className="option-header-compact">
+                        <span className="option-text-compact">{option.text}</span>
+                        <span className="option-percentage-compact">{percentage}%</span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="vote-bar-container-compact">
+                        <div 
+                          className={`vote-bar-compact ${isWinner ? 'winner' : ''}`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
-              <div className="no-votes">
-                <div className="no-votes-icon">🗳️</div>
-                <h3>No votes yet</h3>
-                <p>This poll hasn't received any votes yet.</p>
+              <div className="no-votes-compact">
+                <p>No votes yet</p>
               </div>
             )}
+            
+            <div className="poll-status-compact">
+              <div className="status-item">
+                <span className="status-dot"></span>
+                <span className="status-text">Status: {poll.status || 'Ongoing'}</span>
+              </div>
+              <div className="status-fund">
+                {poll.totalRewardFund || '88 TON'}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="no-data">
