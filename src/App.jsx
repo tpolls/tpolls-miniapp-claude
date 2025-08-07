@@ -18,16 +18,22 @@ import PollResults from './components/PollResults';
 import BottomNavigation from './components/BottomNavigation';
 import TelegramUIExamples from './components/examples/TelegramUIExamples';
 import TelegramUIPollCreation from './components/TelegramUIPollCreation';
+import StartAppPage from './components/StartAppPage';
+import StandAlonePollResponse from './components/StandAlonePollResponse';
 import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted, resetOnboarding } from './utils/userHistory';
 import { getAnimationMode } from './utils/animationMode';
 
 // Helper function to handle Telegram start_param for deep linking
-const handleStartParam = (setCurrentPage, setSelectedPoll) => {
+const handleStartParam = (setCurrentPage, setStartAppParams) => {
   try {
     console.log('🔍 Checking for deep linking...');
     console.log('Window object exists:', typeof window !== 'undefined');
     console.log('Telegram object exists:', typeof window !== 'undefined' && !!window.Telegram);
     console.log('WebApp object exists:', typeof window !== 'undefined' && !!window.Telegram?.WebApp);
+    
+    let pollId = null;
+    let source = null;
+    let user = null;
     
     // Check if we're in Telegram WebApp environment
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
@@ -38,28 +44,13 @@ const handleStartParam = (setCurrentPage, setSelectedPoll) => {
         const startParam = initData.start_param;
         console.log('✅ Telegram start_param detected:', startParam);
         
+        source = 'telegram';
+        user = initData.user || null;
+        
         // Check if it's a poll deep link (format: poll_123)
         if (startParam.startsWith('poll_')) {
-          const pollId = startParam.replace('poll_', '');
-          
-          if (pollId && !isNaN(pollId)) {
-            console.log('🎯 Deep linking to poll ID:', pollId);
-            
-            // Set the poll data for the poll response page
-            setSelectedPoll({ id: pollId });
-            
-            // Navigate to poll response page
-            setCurrentPage('poll-response');
-            
-            return true; // Indicates deep linking was handled
-          } else {
-            console.warn('⚠️ Invalid poll ID format:', pollId);
-          }
-        } else {
-          console.log('ℹ️ start_param not a poll link:', startParam);
+          pollId = startParam.replace('poll_', '');
         }
-      } else {
-        console.log('ℹ️ No start_param found in initData');
       }
     } else {
       console.log('⚠️ Not in Telegram WebApp environment');
@@ -67,16 +58,44 @@ const handleStartParam = (setCurrentPage, setSelectedPoll) => {
       // For testing outside Telegram, check URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       const testStartParam = urlParams.get('startapp');
-      if (testStartParam && testStartParam.startsWith('poll_')) {
-        const pollId = testStartParam.replace('poll_', '');
-        if (pollId && !isNaN(pollId)) {
-          console.log('🧪 Test mode: Deep linking to poll ID:', pollId);
-          setSelectedPoll({ id: pollId });
-          setCurrentPage('poll-response');
-          return true;
+      
+      if (testStartParam) {
+        console.log('🧪 Test mode: startapp parameter detected:', testStartParam);
+        
+        source = 'test';
+        user = null;
+        
+        if (testStartParam.startsWith('poll_')) {
+          pollId = testStartParam.replace('poll_', '');
         }
       }
     }
+    
+    if (pollId && !isNaN(pollId)) {
+      console.log('🎯 Deep linking to poll ID:', pollId);
+      
+      // Store poll ID for StandAlonePollResponse
+      setStartAppParams({
+        source: source,
+        start_param: `poll_${pollId}`,
+        pollId: pollId,
+        user: user
+      });
+      
+      // Navigate directly to StandAlonePollResponse
+      setCurrentPage('standalone-poll-response');
+      return true;
+    } else if (source) {
+      // Show StartAppPage for non-poll parameters
+      setStartAppParams({
+        source: source,
+        start_param: source === 'telegram' ? window.Telegram?.WebApp?.initDataUnsafe?.start_param : (new URLSearchParams(window.location.search)).get('startapp'),
+        user: user
+      });
+      setCurrentPage('start-app');
+      return true;
+    }
+    
   } catch (error) {
     console.error('❌ Error handling Telegram start_param:', error);
   }
@@ -108,29 +127,67 @@ function App() {
   const [selectedPollForResults, setSelectedPollForResults] = useState(null);
   const [animationMode, setAnimationMode] = useState('static');
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
+  const [startAppParams, setStartAppParams] = useState(null);
   
   // Use simple contract version - can be toggled via environment variable
   const useSimpleContract = import.meta.env.VITE_USE_SIMPLE_CONTRACT !== 'false';
 
   useEffect(() => {
+    console.log('🚀 App useEffect started');
+    
     // Load animation mode preference
     setAnimationMode(getAnimationMode());
     
-    // Handle deep linking only once on app load
-    if (!deepLinkHandled) {
-      const wasHandled = handleStartParam(setCurrentPage, setSelectedPoll);
-      setDeepLinkHandled(true);
+    
+    // Wait for Telegram WebApp to be ready before handling deep linking
+    const initializeApp = () => {
+      console.log('📱 Initializing app...');
       
-      // If deep linking was handled, skip the normal initialization flow
-      if (wasHandled) {
-        return;
+      // Handle deep linking only once on app load
+      if (!deepLinkHandled) {
+        const wasHandled = handleStartParam(setCurrentPage, setStartAppParams);
+        setDeepLinkHandled(true);
+        
+        // If deep linking was handled, skip the normal initialization flow
+        if (wasHandled) {
+          return;
+        }
       }
+    };
+    
+    // Check if Telegram WebApp is ready
+    if (window.Telegram && window.Telegram.WebApp) {
+      console.log('✅ Telegram WebApp is ready');
+      initializeApp();
+    } else {
+      console.log('⏳ Waiting for Telegram WebApp to load...');
+      // Wait a bit for the script to load
+      const checkTelegram = setInterval(() => {
+        if (window.Telegram && window.Telegram.WebApp) {
+          console.log('✅ Telegram WebApp loaded after waiting');
+          clearInterval(checkTelegram);
+          initializeApp();
+        }
+      }, 100);
+      
+      // Fallback: proceed anyway after 3 seconds
+      setTimeout(() => {
+        clearInterval(checkTelegram);
+        console.log('⚠️ Proceeding without Telegram WebApp');
+        initializeApp();
+      }, 3000);
     }
     
     // Set up global navigation functions for MainApp
     window.navigateToExamples = () => setCurrentPage('telegram-ui-examples');
     window.navigateToTelegramUIPollCreation = () => setCurrentPage('telegram-ui-poll-creation');
     window.navigateToPollAdmin = () => setCurrentPage('poll-administration');
+    
+    // Skip wallet connection logic if deep linking was handled (poll response will be shown)
+    if (deepLinkHandled) {
+      console.log('🎯 Skipping wallet logic due to startapp parameter');
+      return;
+    }
     
     // Check initial wallet connection state
     if (tonConnectUI.account) {
@@ -155,6 +212,12 @@ function App() {
     }
     
     const unsubscribe = tonConnectUI.onStatusChange((walletInfo) => {
+      // Skip wallet connection changes if showing StartAppPage
+      if (currentPage === 'start-app') {
+        console.log('🎯 Skipping wallet status change due to startapp parameter');
+        return;
+      }
+      
       setIsConnected(!!walletInfo);
       
       if (walletInfo) {
@@ -181,7 +244,28 @@ function App() {
     return () => unsubscribe();
   }, [tonConnectUI]);
 
-  const handleLogin = (walletInfo) => {
+  if (deepLinkHandled) {
+    return <StandAlonePollResponse
+      pollId={startAppParams.pollId}
+      onBack={() => {
+        if (isConnected) {
+          setCurrentPage('main');
+        } else {
+          setCurrentPage('getting-started');
+        }
+      }}
+      onSubmitResponse={(response) => {
+        // Handle successful response submission or view results
+        if (!response.viewResultsOnly && walletAddress) {
+          recordPollResponse(walletAddress, response);
+        }
+        setSelectedPollForResults({ id: response.pollId });
+        setCurrentPage('poll-results');
+      }}
+    />
+  }
+
+  const handleLogin = () => {
     setCurrentPage('main');
   };
 
@@ -199,9 +283,6 @@ function App() {
     setCurrentPage('role-selection');
   };
 
-  const handleBackToAnimationMode = () => {
-    setCurrentPage('animation-mode-selection');
-  };
 
   const handleRoleSelect = (role) => {
     // Mark onboarding as completed when user selects their role
@@ -351,11 +432,63 @@ function App() {
       {currentPage === 'poll-administration' && isConnected && (
         <PollAdministration onBack={handleBottomNavigation} />
       )}
+       {currentPage === 'standalone-poll-response' && startAppParams?.pollId && (
+        <StandAlonePollResponse 
+          pollId={startAppParams.pollId}
+          onBack={() => {
+            if (isConnected) {
+              setCurrentPage('main');
+            } else {
+              setCurrentPage('getting-started');
+            }
+          }}
+          onSubmitResponse={(response) => {
+            // Handle successful response submission or view results
+            if (!response.viewResultsOnly && walletAddress) {
+              recordPollResponse(walletAddress, response);
+            }
+            setSelectedPollForResults({ id: response.pollId });
+            setCurrentPage('poll-results');
+          }}
+        />
+      )}
+      {currentPage === 'start-app' && (
+        <StartAppPage 
+          params={startAppParams}
+          onContinue={(params) => {
+            // Use provided params or state params
+            const effectiveParams = params || startAppParams;
+            
+            // Check if we have a poll to navigate to
+            if (effectiveParams?.start_param?.startsWith('poll_')) {
+              const pollId = effectiveParams.start_param.replace('poll_', '');
+              if (pollId && !isNaN(pollId)) {
+                setCurrentPage('standalone-poll-response');
+                return;
+              }
+            }
+            // Otherwise go to main app or onboarding based on connection status
+            if (isConnected) {
+              setCurrentPage('main');
+            } else {
+              setCurrentPage('getting-started');
+            }
+          }}
+          onBack={() => {
+            if (isConnected) {
+              setCurrentPage('main');
+            } else {
+              setCurrentPage('getting-started');
+            }
+          }}
+        />
+      )}
+      
       {currentPage === 'telegram-ui-poll-creation' && isConnected && (
         <TelegramUIPollCreation onPollCreate={handlePollCreate} onBack={handleBottomNavigation} />
       )}
       
-      {isConnected && !['onboarding', 'getting-started-wallet', 'animation-mode-selection', 'welcome'].includes(currentPage) && (
+      {isConnected && !['onboarding', 'getting-started-wallet', 'animation-mode-selection', 'welcome', 'start-app'].includes(currentPage) && (
         <BottomNavigation 
           currentPage={currentPage} 
           onNavigate={handleBottomNavigation} 
