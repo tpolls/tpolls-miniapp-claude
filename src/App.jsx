@@ -146,11 +146,13 @@ function App() {
       // Handle deep linking only once on app load
       if (!deepLinkHandled) {
         const wasHandled = handleStartParam(setCurrentPage, setStartAppParams);
-        setDeepLinkHandled(true);
         
-        // If deep linking was handled, skip the normal initialization flow
+        // Only set deepLinkHandled to true if we actually handled a deep link
         if (wasHandled) {
+          setDeepLinkHandled(true);
           return;
+        } else {
+          setDeepLinkHandled(false); // Ensure we don't get stuck in a bad state
         }
       }
     };
@@ -244,7 +246,7 @@ function App() {
     return () => unsubscribe();
   }, [tonConnectUI]);
 
-  if (deepLinkHandled) {
+  if (deepLinkHandled && startAppParams?.pollId) {
     return <StandAlonePollResponse
       pollId={startAppParams.pollId}
       onBack={() => {
