@@ -104,39 +104,43 @@ function PollSelection({ onBack, onPollSelect, onViewResults }) {
             {polls.map((poll) => (
             <div 
               key={poll.id} 
-              className={`poll-card ${selectedPoll?.id === poll.id ? 'selected' : ''}`}
+              className={`poll-card-compact ${selectedPoll?.id === poll.id ? 'selected' : ''}`}
               onClick={() => handlePollSelect(poll)}
             >
-              <div className="poll-card-header">
-                <h3 className="poll-title">{poll.title}</h3>
-              </div>
+              <h3 className="poll-title-compact">
+                {poll.hasVoted ? 'hasVoted ' : ''}{poll.title || poll.name || 'Test Poll'}
+              </h3>
               
-              <div className="poll-info">
-                <div className="poll-info-row">
-                  <span className="info-label">Responses:</span>
-                  <span className="info-value">{poll.totalResponses}</span>
+              <div className="poll-stats-row">
+                <div className="stat-item">
+                  <span className="stat-icon">•</span>
+                  <span className="stat-value">{poll.totalResponses}</span>
                 </div>
-                <div className="poll-info-row">
-                  <span className="info-label">Reward Fund:</span>
-                  <span className="info-value">{poll.totalRewardFund}</span>
+                <div className="stat-item">
+                  <span className="stat-icon">$</span>
+                  <span className="stat-value">
+                    {typeof poll.totalRewardFund === 'string' && poll.totalRewardFund.includes('TON') 
+                      ? poll.totalRewardFund 
+                      : `${poll.totalRewardFund || 0} TON`}
+                  </span>
                 </div>
-                <div className="poll-info-row">
-                  <span className="info-label">Duration:</span>
-                  <span className="info-value">
-                    {poll.daysRemaining > 0 ? `${poll.daysRemaining} days remaining` : poll.duration}
+                <div className="stat-item">
+                  <span className="stat-icon">◐</span>
+                  <span className="stat-value">
+                    {poll.daysRemaining > 0 ? `${poll.daysRemaining} days` : '—'}
                   </span>
                 </div>
               </div>
               
-              <div className="poll-actions">
-                <button 
-                  className="view-results-btn"
-                  onClick={(e) => handleViewResults(poll, e)}
-                >
-                  📊 View Results
-                </button>
-              </div>
-              </div>
+              <hr className="poll-divider-compact" />
+              
+              <button 
+                className="view-results-btn-compact"
+                onClick={(e) => handleViewResults(poll, e)}
+              >
+                ▣ View Results
+              </button>
+            </div>
             ))}
           </div>
         ) : (
