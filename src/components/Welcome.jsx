@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
+import { trackPageView, trackWalletEvent } from '../utils/analytics';
 
 function Welcome({ onLogin }) {
   const [tonConnectUI] = useTonConnectUI();
@@ -13,6 +14,9 @@ function Welcome({ onLogin }) {
       tg.ready();
       tg.expand();
     }
+
+    // Track page view on component mount
+    trackPageView('welcome');
   }, []);
 
   useEffect(() => {

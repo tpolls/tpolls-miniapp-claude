@@ -22,6 +22,7 @@ import '@telegram-apps/telegram-ui/dist/styles.css';
 import WalletMenu from './WalletMenu';
 import { getActiveContract, getActiveConfig, USE_SIMPLE_CONTRACT } from '../config/contractConfig';
 import { transformPollDataForSimpleContract, transformPollDataForComplexContract } from '../utils/contractDataTransformer';
+import { trackUserAction } from '../utils/analytics';
 import './PollCreation.css';
 
 function PollCreation({ onBack, onPollCreate }) {
@@ -155,18 +156,20 @@ function PollCreation({ onBack, onPollCreate }) {
     if (webApp) {
       webApp.HapticFeedback.impactOccurred('light');
     }
-    
+
+    trackUserAction('poll_creation_step_next', { currentStep, nextStep: currentStep + 1 });
+
     // If moving from Step 1 to Step 2 and AI is enabled, generate options first
     if (currentStep === 1 && useAI) {
       // Check if we already have AI-generated options (not empty default options)
-      const hasDefaultOptions = formData.options.length === 2 && 
+      const hasDefaultOptions = formData.options.length === 2 &&
         formData.options.every(opt => opt.trim() === '');
-      
+
       if (hasDefaultOptions || formData.options.every(opt => opt.trim() === '')) {
         await generateAIOptionsForNext();
       }
     }
-    
+
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
