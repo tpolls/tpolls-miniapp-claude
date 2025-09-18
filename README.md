@@ -103,6 +103,31 @@ The app uses TON Connect for secure wallet integration:
 - **Event Handling**: Listens for wallet connection/disconnection
 - **Manifest**: Uses TON Connect manifest for wallet compatibility
 
+## Telegram Mini Apps Analytics
+
+This app includes comprehensive analytics tracking using the official Telegram Mini Apps Analytics SDK:
+
+### Features Tracked
+- **Page Views**: Navigation between different screens
+- **User Actions**: Poll creation, voting, wallet connections
+- **Poll Events**: Poll creation steps, option generation, submissions
+- **Wallet Events**: Connection and disconnection events
+- **Error Tracking**: Failed operations and user experience issues
+
+### Analytics Setup
+
+1. **Get Analytics Token**: Register your project at [TON Builders](https://builders.ton.org)
+2. **Configure Environment**: Add your analytics token to `.env`
+3. **Automatic Tracking**: Analytics are automatically initialized and tracked throughout the app
+
+### Analytics Data
+
+All analytics data is:
+- **Anonymous**: No private user data is collected
+- **Privacy-Focused**: Only app usage patterns are tracked
+- **Aggregated**: Used for ranking apps in Telegram Mini App catalogs
+- **Transparent**: Events are logged for debugging (in development mode)
+
 ## Development
 
 ### Available Scripts
@@ -135,12 +160,18 @@ VITE_SIMPLE_CONTRACT_ADDRESS=EQD33qSiwBmeW455-zQsrxdHUlpiuO3pnkO0SzBCjPAFvOAe
 
 # tPolls API Backend URL (optional)
 VITE_DPOLLS_API=http://localhost:3001
+
+# Telegram Analytics Configuration
+VITE_TELEGRAM_ANALYTICS_TOKEN=your_analytics_token_here
+VITE_TELEGRAM_ANALYTICS_APP_NAME=tpolls-miniapp
 ```
 
 ### Environment Variables Description
 
 - **`VITE_TPOLLS_CONTRACT_ADDRESS`**: The address of the deployed TPollsDapp smart contract on TON blockchain. If not set, uses the default contract address.
 - **`VITE_DPOLLS_API`**: URL of the tPolls backend API service. If not set, defaults to `http://localhost:3001` for development. This includes endpoints for poll options generation and gasless voting relay.
+- **`VITE_TELEGRAM_ANALYTICS_TOKEN`**: Analytics token from TON Builders (https://builders.ton.org). Required for Telegram Mini Apps Analytics tracking.
+- **`VITE_TELEGRAM_ANALYTICS_APP_NAME`**: Your app's analytics identifier. Defaults to 'tpolls-miniapp'.
 
 Copy `.env.example` to `.env` and update the values as needed for your deployment.
 

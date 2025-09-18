@@ -23,6 +23,7 @@ import StandAlonePollResponse from './components/StandAlonePollResponse';
 import ManagePolls from './components/ManagePolls';
 import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted, resetOnboarding } from './utils/userHistory';
 import { getAnimationMode } from './utils/animationMode';
+import { trackPageView, trackUserAction, trackWalletEvent } from './utils/analytics';
 
 // Helper function to handle Telegram start_param for deep linking
 const handleStartParam = (setCurrentPage, setStartAppParams) => {
@@ -220,26 +221,32 @@ function App() {
         console.log('🎯 Skipping wallet status change due to startapp parameter');
         return;
       }
-      
+
       setIsConnected(!!walletInfo);
-      
+
       if (walletInfo) {
         const address = walletInfo.account.address;
         setWalletAddress(address);
-        
+
+        trackWalletEvent('wallet_connected', { address: address.slice(0, 8) + '...' });
+
         // Initialize user history if new user
         initializeUserHistory(address);
-        
+
         // Check if user has previous interactions
         if (hasUserInteracted(address)) {
           // Returning user - go to dashboard
+          trackPageView('main');
           setCurrentPage('main');
         } else {
           // New user - go to onboarding
+          trackPageView('onboarding');
           setCurrentPage('onboarding');
         }
       } else {
+        trackWalletEvent('wallet_disconnected');
         setWalletAddress(null);
+        trackPageView('main');
         setCurrentPage('main');
       }
     });
@@ -269,20 +276,25 @@ function App() {
   }
 
   const handleLogin = () => {
+    trackPageView('main');
     setCurrentPage('main');
   };
 
   const handleContinue = () => {
     // User starts onboarding process, continue to welcome page
+    trackPageView('role-selection');
     setCurrentPage('role-selection');
   };
 
   const handleGettingStartedContinue = () => {
+    trackPageView('role-selection');
     setCurrentPage('role-selection');
   };
 
   const handleAnimationModeSelect = (mode) => {
+    trackUserAction('animation_mode_selected', { mode });
     setAnimationMode(mode);
+    trackPageView('role-selection');
     setCurrentPage('role-selection');
   };
 
@@ -292,10 +304,14 @@ function App() {
     if (walletAddress) {
       markOnboardingCompleted(walletAddress);
     }
-    
+
+    trackUserAction('role_selected', { role });
+
     if (role === 'creator') {
+      trackPageView('poll-creation');
       setCurrentPage('poll-creation');
     } else {
+      trackPageView('poll-selection');
       setCurrentPage('poll-selection');
     }
   };
@@ -310,31 +326,45 @@ function App() {
 
   const handlePollCreate = (pollData) => {
     console.log('Poll created:', pollData);
-    
+
     // Record poll creation in user history
     if (walletAddress) {
       recordPollCreation(walletAddress, pollData);
     }
-    
+
+    trackUserAction('poll_created', {
+      pollType: pollData.type,
+      optionsCount: pollData.options?.length
+    });
+
+    trackPageView('main');
     setCurrentPage('main');
   };
 
   const handlePollSelect = (pollData) => {
     console.log('Poll selected:', pollData);
     setSelectedPoll(pollData);
+    trackUserAction('poll_selected', { pollId: pollData.id });
+    trackPageView('poll-response');
     setCurrentPage('poll-response');
   };
 
   const handlePollResponse = (responseData) => {
     console.log('Poll response submitted:', responseData);
-    
+
     // Record poll response in user history
     if (walletAddress) {
       recordPollResponse(walletAddress, responseData);
     }
-    
+
+    trackUserAction('poll_response_submitted', {
+      pollId: responseData.pollId,
+      optionSelected: responseData.selectedOption
+    });
+
     // Navigate to poll results page after successful vote submission
     setSelectedPollForResults(selectedPoll);
+    trackPageView('poll-results');
     setCurrentPage('poll-results');
   };
 
@@ -357,12 +387,15 @@ function App() {
   };
 
   const handleBottomNavigation = (page) => {
+    trackPageView(page);
     setCurrentPage(page);
   };
 
   const handleViewResults = (poll) => {
     console.log('View results for poll:', poll);
     setSelectedPollForResults(poll);
+    trackUserAction('poll_results_viewed', { pollId: poll.id });
+    trackPageView('poll-results');
     setCurrentPage('poll-results');
   };
 
