@@ -25,6 +25,50 @@ import { transformPollDataForSimpleContract, transformPollDataForComplexContract
 import { trackUserAction } from '../utils/analytics';
 import './PollCreation.css';
 
+// Helper functions for token information
+const getTokenSymbol = (tokenType) => {
+  const symbols = {
+    'ton': 'TON',
+    'jetton-custom': 'CUSTOM',
+    'jetton-usdt': 'USDT',
+    'jetton-usdc': 'USDC',
+    'jetton-not': 'NOT'
+  };
+  return symbols[tokenType] || 'TOKEN';
+};
+
+const getTokenStep = (tokenType) => {
+  const steps = {
+    'ton': '0.01',
+    'jetton-custom': '1',
+    'jetton-usdt': '0.01',
+    'jetton-usdc': '0.01',
+    'jetton-not': '1000'
+  };
+  return steps[tokenType] || '1';
+};
+
+const getTokenPlaceholder = (tokenType) => {
+  const placeholders = {
+    'ton': '0.1',
+    'jetton-custom': '100',
+    'jetton-usdt': '1.0',
+    'jetton-usdc': '1.0',
+    'jetton-not': '10000'
+  };
+  return placeholders[tokenType] || '100';
+};
+
+const getJettonAddress = (tokenType) => {
+  const addresses = {
+    'jetton-custom': 'EQDiYefKbljzJeBgLAB6Y4AYSRrgnFQnqdCKhHCw8fk987hQ',
+    'jetton-usdt': 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs', // Example USDT address
+    'jetton-usdc': 'EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728', // Example USDC address
+    'jetton-not': 'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT'  // Example NOT address
+  };
+  return addresses[tokenType] || null;
+};
+
 function PollCreation({ onBack, onPollCreate }) {
   const [tonConnectUI] = useTonConnectUI();
   const [webApp, setWebApp] = useState(null);
@@ -46,6 +90,9 @@ function PollCreation({ onBack, onPollCreate }) {
     
     // Step 3: Configuration
     fundingSource: 'self-funded', // 'self-funded' or 'crowdfunded'
+    rewardToken: 'ton', // 'ton', 'jetton-custom', 'jetton-usdt', etc.
+    rewardAmount: '',
+    jettonRewardAmount: '',
     openImmediately: true,
     rewardDistribution: 'equal-share' // 'equal-share' or 'fixed'
   });
@@ -502,15 +549,66 @@ function PollCreation({ onBack, onPollCreate }) {
             </div>
 
             {formData.fundingSource === 'self-funded' && (
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <Checkbox
-                    checked={formData.openImmediately}
-                    onChange={(e) => handleInputChange('openImmediately', e.target.checked)}
+              <>
+                <div className="form-group">
+                  <label>Reward Token</label>
+                  <Select
+                    value={formData.rewardToken}
+                    onChange={(value) => {
+                      handleInputChange('rewardToken', value);
+                      trackUserAction('poll_reward_token_selected', { tokenType: value });
+                    }}
+                    className="poll-select"
+                  >
+                    <option value="ton">💎 TON (Native Token)</option>
+                    <option value="jetton-custom">🪙 Custom Jetton</option>
+                    <option value="jetton-usdt">💰 USDT on TON</option>
+                    <option value="jetton-usdc">🔵 USDC on TON</option>
+                    <option value="jetton-not">🟢 Notcoin (NOT)</option>
+                  </Select>
+                  <div className="input-note">
+                    {formData.rewardToken === 'ton' && 'Native TON blockchain token'}
+                    {formData.rewardToken === 'jetton-custom' && 'Your custom jetton (EQDiYefK...)'}
+                    {formData.rewardToken === 'jetton-usdt' && 'Tether USD on TON blockchain'}
+                    {formData.rewardToken === 'jetton-usdc' && 'USD Coin on TON blockchain'}
+                    {formData.rewardToken === 'jetton-not' && 'Notcoin community token'}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    {formData.rewardToken === 'ton'
+                      ? 'Reward Amount (TON)'
+                      : `Reward Amount (${getTokenSymbol(formData.rewardToken)})`
+                    }
+                  </label>
+                  <Input
+                    type="number"
+                    step={getTokenStep(formData.rewardToken)}
+                    min="0"
+                    value={formData.rewardToken === 'ton' ? formData.rewardAmount : formData.jettonRewardAmount}
+                    onChange={(e) => handleInputChange(
+                      formData.rewardToken === 'ton' ? 'rewardAmount' : 'jettonRewardAmount',
+                      e.target.value
+                    )}
+                    placeholder={getTokenPlaceholder(formData.rewardToken)}
+                    className="poll-input"
                   />
-                  <span>Open poll immediately</span>
-                </label>
-              </div>
+                  <div className="input-note">
+                    Amount in {getTokenSymbol(formData.rewardToken)} to reward each voter
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <Checkbox
+                      checked={formData.openImmediately}
+                      onChange={(e) => handleInputChange('openImmediately', e.target.checked)}
+                    />
+                    <span>Open poll immediately</span>
+                  </label>
+                </div>
+              </>
             )}
 
             <div className="form-group">

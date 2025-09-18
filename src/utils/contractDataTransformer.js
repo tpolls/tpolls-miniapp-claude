@@ -74,16 +74,37 @@ export const transformComplexPollForUI = (complexPoll) => {
  * @param {Object} pollData - Poll creation data from UI
  * @returns {Object} Data formatted for simplified contract
  */
+// Jetton address mapping
+const getJettonAddress = (tokenType) => {
+  const addresses = {
+    'jetton-custom': 'EQDiYefKbljzJeBgLAB6Y4AYSRrgnFQnqdCKhHCw8fk987hQ',
+    'jetton-usdt': 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+    'jetton-usdc': 'EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728',
+    'jetton-not': 'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT'
+  };
+  return addresses[tokenType] || null;
+};
+
 export const transformPollDataForSimpleContract = (pollData) => {
-  return {
-    // Only pass essential data for simple contract
+  const isJettonReward = pollData.rewardToken && pollData.rewardToken !== 'ton';
+
+  const transformedData = {
+    // Essential data for simple contract
     subject: pollData.subject,
     options: pollData.options,
     createdBy: pollData.createdBy,
-    
-    // Ignore complex fields not used by simple contract
-    // (funding, gasless options, complex rewards, etc.)
+
+    // Reward configuration
+    rewardPerVote: pollData.rewardToken === 'ton' ?
+      (pollData.rewardAmount ? parseFloat(pollData.rewardAmount) : 0) : 0,
+
+    // Jetton reward configuration
+    jettonRewardWallet: isJettonReward ? getJettonAddress(pollData.rewardToken) : null,
+    jettonRewardPerVote: isJettonReward ?
+      (pollData.jettonRewardAmount ? parseFloat(pollData.jettonRewardAmount) : 0) : 0
   };
+
+  return transformedData;
 };
 
 /**

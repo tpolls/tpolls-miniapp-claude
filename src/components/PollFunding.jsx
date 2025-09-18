@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import tpollsContractSimple from '../services/tpollsContractSimple';
+import JettonFunding from './JettonFunding';
+import { trackUserAction } from '../utils/analytics';
 import './PollFunding.css';
 
 
@@ -12,6 +14,8 @@ function PollFunding({ onBack }) {
   const [isLoading, setIsLoading] = useState(true);
   const [fundingAmount, setFundingAmount] = useState('');
   const [showFundingModal, setShowFundingModal] = useState(false);
+  const [showJettonFunding, setShowJettonFunding] = useState(false);
+  const [fundingType, setFundingType] = useState('ton'); // 'ton' or 'jetton'
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -66,6 +70,40 @@ function PollFunding({ onBack }) {
     }
     setSelectedPoll(poll);
     setShowFundingModal(true);
+    trackUserAction('poll_funding_modal_opened', { pollId: poll.id });
+  };
+
+  const handleFundingTypeSelect = (type) => {
+    setFundingType(type);
+
+    if (type === 'jetton') {
+      setShowFundingModal(false);
+      setShowJettonFunding(true);
+      trackUserAction('jetton_funding_selected', { pollId: selectedPoll?.id });
+    } else {
+      trackUserAction('ton_funding_selected', { pollId: selectedPoll?.id });
+    }
+  };
+
+  const handleJettonFundingComplete = (fundingData) => {
+    // Handle successful jetton funding
+    console.log('Jetton funding completed:', fundingData);
+
+    // Update the poll's funding status
+    setPolls(prevPolls =>
+      prevPolls.map(poll =>
+        poll.id === fundingData.pollId
+          ? {
+              ...poll,
+              backers: poll.backers + 1,
+              // Note: In a real implementation, you'd fetch updated data from the contract
+            }
+          : poll
+      )
+    );
+
+    // Refresh polls to show updated funding
+    loadFundingPolls();
   };
 
   const handleFundPoll = async () => {
@@ -253,22 +291,51 @@ function PollFunding({ onBack }) {
                 </div>
               </div>
 
-              <div className="funding-input-section">
-                <label htmlFor="funding-amount">Funding Amount (TON)</label>
-                <input
-                  id="funding-amount"
-                  type="number"
-                  step="0.01"
-                  min={parseFloat(selectedPoll.minContribution)}
-                  value={fundingAmount}
-                  onChange={(e) => setFundingAmount(e.target.value)}
-                  placeholder={`Min: ${selectedPoll.minContribution}`}
-                  className="funding-input"
-                />
-                <div className="funding-note">
-                  Minimum contribution: {selectedPoll.minContribution}
+              {/* Funding Type Selection */}
+              <div className="funding-type-selection">
+                <h5>Choose Funding Method:</h5>
+                <div className="funding-type-buttons">
+                  <button
+                    className={`funding-type-btn ${fundingType === 'ton' ? 'active' : ''}`}
+                    onClick={() => handleFundingTypeSelect('ton')}
+                  >
+                    <div className="funding-type-icon">💎</div>
+                    <div className="funding-type-info">
+                      <div className="funding-type-name">TON</div>
+                      <div className="funding-type-desc">Native token</div>
+                    </div>
+                  </button>
+                  <button
+                    className={`funding-type-btn ${fundingType === 'jetton' ? 'active' : ''}`}
+                    onClick={() => handleFundingTypeSelect('jetton')}
+                  >
+                    <div className="funding-type-icon">🪙</div>
+                    <div className="funding-type-info">
+                      <div className="funding-type-name">Custom Token</div>
+                      <div className="funding-type-desc">Jetton funding</div>
+                    </div>
+                  </button>
                 </div>
               </div>
+
+              {fundingType === 'ton' && (
+                <div className="funding-input-section">
+                  <label htmlFor="funding-amount">Funding Amount (TON)</label>
+                  <input
+                    id="funding-amount"
+                    type="number"
+                    step="0.01"
+                    min={parseFloat(selectedPoll.minContribution)}
+                    value={fundingAmount}
+                    onChange={(e) => setFundingAmount(e.target.value)}
+                    placeholder={`Min: ${selectedPoll.minContribution}`}
+                    className="funding-input"
+                  />
+                  <div className="funding-note">
+                    Minimum contribution: {selectedPoll.minContribution}
+                  </div>
+                </div>
+              )}
 
               <div className="funding-benefits">
                 <h5>Benefits of funding:</h5>
@@ -282,22 +349,42 @@ function PollFunding({ onBack }) {
             </div>
 
             <div className="modal-actions">
-              <button 
-                className="cancel-btn" 
+              <button
+                className="cancel-btn"
                 onClick={() => setShowFundingModal(false)}
               >
                 Cancel
               </button>
-              <button 
-                className="fund-btn"
-                onClick={handleFundPoll}
-                disabled={!fundingAmount || parseFloat(fundingAmount) < parseFloat(selectedPoll.minContribution)}
-              >
-                Fund Poll
-              </button>
+              {fundingType === 'ton' ? (
+                <button
+                  className="fund-btn"
+                  onClick={handleFundPoll}
+                  disabled={!fundingAmount || parseFloat(fundingAmount) < parseFloat(selectedPoll.minContribution)}
+                >
+                  Fund with TON
+                </button>
+              ) : (
+                <button
+                  className="fund-btn jetton-fund-btn"
+                  onClick={() => handleFundingTypeSelect('jetton')}
+                >
+                  Fund with Jettons
+                </button>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* Jetton Funding Modal */}
+      {showJettonFunding && selectedPoll && (
+        <JettonFunding
+          pollId={selectedPoll.id}
+          pollContractAddress={tpollsContractSimple.contractAddress}
+          onFundingComplete={handleJettonFundingComplete}
+          onClose={() => setShowJettonFunding(false)}
+          minAmount="1"
+        />
       )}
 
       <div className="poll-funding-actions">
