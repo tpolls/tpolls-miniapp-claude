@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react"
 import { TonConnectUIProvider, useTonConnectUI } from '@tonconnect/ui-react';
 import { ToastProvider } from './contexts/ToastContext';
 import Welcome from './components/Welcome';
