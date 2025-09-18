@@ -9,7 +9,7 @@ import { TonClient } from '@ton/ton';
 class TPollsContractSimple {
   constructor() {
     // TON Configuration - Blockchain only
-    this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQAcDlO2BaUEtKW0Va2YJShs1pzlgHqz8SG1N9OUnGaL46vN';
+    this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQDAfR3FUXGaTXTT-o_C5xNRL9_a2P-QmoCyBPLsGPcPu7iZ';
     this.tonConnectUI = null;
     this.client = null;
   }
