@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from "@vercel/analytics/react"
 import { TonConnectUIProvider, useTonConnectUI } from '@tonconnect/ui-react';
 import { ToastProvider } from './contexts/ToastContext';
 import Welcome from './components/Welcome';
@@ -535,6 +536,7 @@ function AppWithProvider() {
     <TonConnectUIProvider manifestUrl="https://tpolls.vercel.app/tonconnect-manifest.json">
       <ToastProvider>
         <App />
+        <Analytics />
       </ToastProvider>
     </TonConnectUIProvider>
   );
