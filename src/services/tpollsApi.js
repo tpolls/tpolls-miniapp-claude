@@ -326,7 +326,7 @@ class TPollsApiService {
     if (!this.isAvailable) {
       return null;
     }
-    
+
     try {
       const response = await fetch(`${this.apiBaseUrl}/database/polls/${pollId}/metadata`);
       if (response.ok) {
@@ -336,8 +336,95 @@ class TPollsApiService {
     } catch (error) {
       console.warn('Metadata not available:', error);
     }
-    
+
     return null;
+  }
+
+  /**
+   * Store gift poll metadata
+   * @param {string} giftId - Unique gift identifier
+   * @param {number} pollId - Associated poll ID
+   * @param {Object} giftData - Gift metadata
+   */
+  async storeGiftMetadata(giftId, pollId, giftData) {
+    if (!this.isAvailable) {
+      throw new Error('TPolls API not available for gift metadata storage');
+    }
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/database/gifts/store`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          giftId,
+          pollId,
+          ...giftData
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend responded with ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error storing gift metadata:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get gift metadata by gift ID
+   * @param {string} giftId - Unique gift identifier
+   */
+  async getGiftMetadata(giftId) {
+    if (!this.isAvailable) {
+      throw new Error('TPolls API not available for gift metadata');
+    }
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/database/gifts/${giftId}`);
+
+      if (!response.ok) {
+        throw new Error(`Gift not found or expired (${response.status})`);
+      }
+
+      const data = await response.json();
+      return data.success ? data.gift : null;
+    } catch (error) {
+      console.error('Error getting gift metadata:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark gift as unwrapped
+   * @param {string} giftId - Unique gift identifier
+   * @param {string} unwrappedBy - Address of user who unwrapped
+   */
+  async markGiftUnwrapped(giftId, unwrappedBy) {
+    if (!this.isAvailable) {
+      console.warn('TPolls API not available for gift unwrapping tracking');
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/database/gifts/${giftId}/unwrap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unwrappedBy, unwrappedAt: new Date().toISOString() }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error marking gift as unwrapped:', error);
+      return null;
+    }
   }
 }
 
