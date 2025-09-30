@@ -20,7 +20,12 @@ function BottomNavigation({ currentPage, onNavigate }) {
     if (webApp) {
       webApp.HapticFeedback.impactOccurred('light');
     }
-    
+
+    // Add hash routing for poll creation (center plus icon)
+    if (page === 'poll-creation') {
+      window.location.hash = '#/create-poll';
+    }
+
     // Handle special navigation cases
     if (page === 'poll-creation' && currentPage === 'role-selection') {
       // If we're on role selection, go to poll creation

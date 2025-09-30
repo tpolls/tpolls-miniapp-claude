@@ -1,0 +1,1 @@
+For every prompt I issue, please create a log in ./ai_logs with my prompt and a summary of what you did.
