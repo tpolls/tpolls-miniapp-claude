@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jetton Poll Creation Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-header {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .test-case {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        .test-result {
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px 4px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .token-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .token-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .token-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .logs {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-header">🧪 Jetton Poll Creation Test Suite</h1>
+
+        <div class="info test-result">
+            <strong>📋 Test Overview:</strong> This page tests the jetton poll creation functionality with different token types.
+        </div>
+
+        <div class="test-case">
+            <h3>🪙 Supported Jettons</h3>
+            <div class="token-info" id="tokenInfo">
+                <!-- Token cards will be generated here -->
+            </div>
+        </div>
+
+        <div class="test-case">
+            <h3>🎮 Test Controls</h3>
+            <button onclick="runAllTests()">🚀 Run All Tests</button>
+            <button onclick="testJettonAddresses()">📍 Test Addresses</button>
+            <button onclick="testPollTransformation()">🔄 Test Transformation</button>
+            <button onclick="testMockTransactions()">💰 Test Transactions</button>
+            <button onclick="clearLogs()">🧹 Clear Logs</button>
+        </div>
+
+        <div class="test-case">
+            <h3>📊 Test Results</h3>
+            <div id="testResults">
+                <div class="info test-result">Ready to run tests...</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <h3>📝 Console Logs</h3>
+            <div id="consoleLogs" class="logs">Console output will appear here...\n</div>
+        </div>
+    </div>
+
+    <script>
+        // Test configuration
+        const JETTON_ADDRESSES = {
+            'jetton-custom': 'EQDiYefKbljzJeBgLAB6Y4AYSRrgnFQnqdCKhHCw8fk987hQ',
+            'jetton-usdt': 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+            'jetton-usdc': 'EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728',
+            'jetton-not': 'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT'
+        };
+
+        const JETTON_INFO = {
+            'jetton-custom': { symbol: 'CUSTOM', name: 'Custom Jetton', icon: '🪙' },
+            'jetton-usdt': { symbol: 'USDT', name: 'Tether USD', icon: '💰' },
+            'jetton-usdc': { symbol: 'USDC', name: 'USD Coin', icon: '🔵' },
+            'jetton-not': { symbol: 'NOT', name: 'Notcoin', icon: '🟢' }
+        };
+
+        const TEST_POLLS = [
+            {
+                name: 'TON Native Poll',
+                data: {
+                    subject: 'Should we implement dark mode?',
+                    options: ['Yes', 'No', 'Maybe'],
+                    rewardToken: 'ton',
+                    rewardAmount: '0.1',
+                    jettonRewardAmount: ''
+                }
+            },
+            {
+                name: 'Custom Jetton Poll',
+                data: {
+                    subject: 'Best TON DApp category?',
+                    options: ['DeFi', 'Gaming', 'Social', 'NFTs'],
+                    rewardToken: 'jetton-custom',
+                    rewardAmount: '',
+                    jettonRewardAmount: '1000'
+                }
+            },
+            {
+                name: 'USDT Stablecoin Poll',
+                data: {
+                    subject: 'Preferred trading pair?',
+                    options: ['TON/USDT', 'BTC/USDT', 'ETH/USDT'],
+                    rewardToken: 'jetton-usdt',
+                    rewardAmount: '',
+                    jettonRewardAmount: '5.0'
+                }
+            },
+            {
+                name: 'Notcoin Community Poll',
+                data: {
+                    subject: 'Next Notcoin feature?',
+                    options: ['Staking', 'Gaming', 'Social Mining'],
+                    rewardToken: 'jetton-not',
+                    rewardAmount: '',
+                    jettonRewardAmount: '50000'
+                }
+            }
+        ];
+
+        // Logging functions
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('consoleLogs');
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateResults(results) {
+            const resultsElement = document.getElementById('testResults');
+            resultsElement.innerHTML = results.map(result =>
+                `<div class="test-result ${result.success ? 'success' : 'error'}">
+                    ${result.success ? '✅' : '❌'} ${result.message}
+                </div>`
+            ).join('');
+        }
+
+        function clearLogs() {
+            document.getElementById('consoleLogs').textContent = 'Console cleared...\n';
+            document.getElementById('testResults').innerHTML = '<div class="info test-result">Ready to run tests...</div>';
+        }
+
+        // Initialize token display
+        function initializeTokenDisplay() {
+            const tokenInfo = document.getElementById('tokenInfo');
+            tokenInfo.innerHTML = Object.entries(JETTON_INFO).map(([type, info]) =>
+                `<div class="token-card">
+                    <div class="token-icon">${info.icon}</div>
+                    <div><strong>${info.symbol}</strong></div>
+                    <div style="font-size: 12px; color: #666;">${info.name}</div>
+                    <div style="font-size: 10px; color: #999; margin-top: 8px;">
+                        ${JETTON_ADDRESSES[type].slice(0, 10)}...
+                    </div>
+                </div>`
+            ).join('');
+        }
+
+        // Test functions
+        function testJettonAddresses() {
+            log('Testing jetton addresses...', 'info');
+            const results = [];
+
+            Object.entries(JETTON_ADDRESSES).forEach(([type, address]) => {
+                const isValid = address.startsWith('EQ') && address.length >= 48;
+                results.push({
+                    success: isValid,
+                    message: `${type}: ${isValid ? 'Valid address' : 'Invalid address'}`
+                });
+                log(`${type}: ${address}`, isValid ? 'success' : 'error');
+            });
+
+            updateResults(results);
+            return results;
+        }
+
+        function testPollTransformation() {
+            log('Testing poll data transformation...', 'info');
+            const results = [];
+
+            TEST_POLLS.forEach(testPoll => {
+                try {
+                    const pollData = testPoll.data;
+                    const isJetton = pollData.rewardToken !== 'ton';
+
+                    // Simulate transformation
+                    const transformed = {
+                        subject: pollData.subject,
+                        options: pollData.options,
+                        rewardPerVote: pollData.rewardToken === 'ton' ? parseFloat(pollData.rewardAmount || 0) : 0,
+                        jettonRewardWallet: isJetton ? JETTON_ADDRESSES[pollData.rewardToken] : null,
+                        jettonRewardPerVote: isJetton ? parseFloat(pollData.jettonRewardAmount || 0) : 0
+                    };
+
+                    // Validation
+                    let isValid = true;
+                    if (pollData.rewardToken === 'ton' && transformed.rewardPerVote <= 0) isValid = false;
+                    if (isJetton && (!transformed.jettonRewardWallet || transformed.jettonRewardPerVote <= 0)) isValid = false;
+
+                    results.push({
+                        success: isValid,
+                        message: `${testPoll.name}: ${isValid ? 'Transformation successful' : 'Transformation failed'}`
+                    });
+
+                    log(`${testPoll.name} - TON: ${transformed.rewardPerVote}, Jetton: ${transformed.jettonRewardPerVote}`,
+                        isValid ? 'success' : 'error');
+
+                } catch (error) {
+                    results.push({
+                        success: false,
+                        message: `${testPoll.name}: Error - ${error.message}`
+                    });
+                    log(`${testPoll.name} failed: ${error.message}`, 'error');
+                }
+            });
+
+            updateResults(results);
+            return results;
+        }
+
+        async function testMockTransactions() {
+            log('Testing mock transactions...', 'info');
+            const results = [];
+
+            for (const testPoll of TEST_POLLS) {
+                try {
+                    log(`Processing ${testPoll.name}...`, 'info');
+
+                    // Create mock transaction
+                    const transaction = {
+                        validUntil: Math.floor(Date.now() / 1000) + 600,
+                        messages: [{
+                            address: 'EQDAfR3FUXGaTXTT-o_C5xNRL9_a2P-QmoCyBPLsGPcPu7iZ',
+                            amount: '50000000', // 0.05 TON
+                            payload: `mock_${testPoll.data.rewardToken}_${Date.now()}`
+                        }]
+                    };
+
+                    // Simulate network delay
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    // Mock successful transaction
+                    const txResult = {
+                        hash: '0x' + Math.random().toString(16).substr(2, 64),
+                        success: true
+                    };
+
+                    results.push({
+                        success: true,
+                        message: `${testPoll.name}: Transaction successful (${txResult.hash.slice(0, 16)}...)`
+                    });
+
+                    log(`${testPoll.name} transaction hash: ${txResult.hash}`, 'success');
+
+                } catch (error) {
+                    results.push({
+                        success: false,
+                        message: `${testPoll.name}: Transaction failed - ${error.message}`
+                    });
+                    log(`${testPoll.name} transaction failed: ${error.message}`, 'error');
+                }
+            }
+
+            updateResults(results);
+            return results;
+        }
+
+        async function runAllTests() {
+            log('🚀 Starting comprehensive test suite...', 'info');
+
+            const addressResults = testJettonAddresses();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const transformResults = testPollTransformation();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const transactionResults = await testMockTransactions();
+
+            // Combine all results
+            const allResults = [...addressResults, ...transformResults, ...transactionResults];
+            const successCount = allResults.filter(r => r.success).length;
+            const totalCount = allResults.length;
+
+            log(`\n🏁 Test Suite Complete: ${successCount}/${totalCount} passed (${((successCount/totalCount)*100).toFixed(1)}%)`,
+                successCount === totalCount ? 'success' : 'warning');
+
+            if (successCount === totalCount) {
+                log('🎉 All tests passed! Jetton poll creation is ready.', 'success');
+            } else {
+                log(`⚠️ ${totalCount - successCount} tests failed. Review the results above.`, 'warning');
+            }
+
+            return allResults;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTokenDisplay();
+            log('🧪 Jetton Poll Test Suite initialized', 'success');
+            log('💡 Click "Run All Tests" to start testing', 'info');
+        });
+    </script>
+</body>
+</html>

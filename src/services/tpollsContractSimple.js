@@ -9,7 +9,7 @@ import { TonClient } from '@ton/ton';
 class TPollsContractSimple {
   constructor() {
     // TON Configuration - Blockchain only
-    this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQAcDlO2BaUEtKW0Va2YJShs1pzlgHqz8SG1N9OUnGaL46vN';
+    this.contractAddress = import.meta.env.VITE_SIMPLE_CONTRACT_ADDRESS || 'EQDAfR3FUXGaTXTT-o_C5xNRL9_a2P-QmoCyBPLsGPcPu7iZ';
     this.tonConnectUI = null;
     this.client = null;
   }
@@ -87,7 +87,7 @@ class TPollsContractSimple {
       // Create poll transaction for blockchain
       const pollSubject = pollData.subject || pollData.title || 'New Poll';
       const pollOptions = pollData.options;
-      const transactionData = await this._createPollTransaction(pollOptions, pollData.createdBy, pollSubject);
+      const transactionData = await this._createPollTransaction(pollOptions, pollData.createdBy, pollSubject, pollData);
       
       // Send transaction to blockchain
       const result = await this.tonConnectUI.sendTransaction({
@@ -130,7 +130,7 @@ class TPollsContractSimple {
   /**
    * Create poll transaction directly with blockchain
    */
-  async _createPollTransaction(pollOptions, createdBy, pollSubject = '') {
+  async _createPollTransaction(pollOptions, createdBy, pollSubject = '', pollData = {}) {
     if (!this.client) {
       throw new Error('TON client not available for direct blockchain interaction');
     }
@@ -196,13 +196,35 @@ class TPollsContractSimple {
         optionsDict.set(index, optionCell);
       });
       
-      // Build CreatePoll message payload with subject and options
-      const messageBody = beginCell()
+      // Extract reward configuration from pollData
+      const rewardPerVote = pollData.rewardPerVote || 0;
+      const jettonRewardWallet = pollData.jettonRewardWallet;
+      const jettonRewardPerVote = pollData.jettonRewardPerVote || 0;
+
+      // Build CreatePoll message payload with all new fields
+      let messageBuilder = beginCell()
         .storeUint(1052480048, 32) // CreatePoll operation code for deployed contract
         .storeStringRefTail(pollSubject || '') // Store poll subject as string
         .storeDict(optionsDict) // Store options dictionary
-        .storeUint(0, 257) // Reward per vote (0 for no rewards)
-        .endCell();
+        .storeUint(Math.floor(rewardPerVote * 1000000000), 257); // TON reward per vote in nanotons
+
+      // Store jetton reward wallet address (nullable)
+      if (jettonRewardWallet) {
+        try {
+          const jettonAddress = Address.parse(jettonRewardWallet);
+          messageBuilder = messageBuilder.storeBit(1).storeAddress(jettonAddress);
+        } catch (error) {
+          console.warn('Invalid jetton wallet address, storing null:', error);
+          messageBuilder = messageBuilder.storeBit(0);
+        }
+      } else {
+        messageBuilder = messageBuilder.storeBit(0); // null address
+      }
+
+      // Store jetton reward per vote
+      messageBuilder = messageBuilder.storeUint(Math.floor(jettonRewardPerVote * 1000000000), 257);
+
+      const messageBody = messageBuilder.endCell();
 
       const payload = messageBody.toBoc().toString('base64');
 
