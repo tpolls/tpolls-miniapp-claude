@@ -22,6 +22,7 @@ import TelegramUIPollCreation from './components/TelegramUIPollCreation';
 import StartAppPage from './components/StartAppPage';
 import StandAlonePollResponse from './components/StandAlonePollResponse';
 import ManagePolls from './components/ManagePolls';
+import GiftPollReceiver from './components/GiftPollReceiver';
 import { hasUserInteracted, initializeUserHistory, recordPollCreation, recordPollResponse, markOnboardingCompleted, resetOnboarding } from './utils/userHistory';
 import { getAnimationMode } from './utils/animationMode';
 import { trackPageView, trackUserAction, trackWalletEvent } from './utils/analytics';
@@ -54,6 +55,21 @@ const handleStartParam = (setCurrentPage, setStartAppParams) => {
         if (startParam.startsWith('poll_')) {
           pollId = startParam.replace('poll_', '');
         }
+        // Check if it's a gift poll deep link (format: gift_123)
+        else if (startParam.startsWith('gift_')) {
+          const giftId = startParam.replace('gift_', '');
+          console.log('🎁 Gift poll deep link detected:', giftId);
+
+          setStartAppParams({
+            source: source,
+            start_param: startParam,
+            giftId: giftId,
+            user: user
+          });
+
+          setCurrentPage('gift-poll-receiver');
+          return true;
+        }
       }
     } else {
       console.log('⚠️ Not in Telegram WebApp environment');
@@ -70,6 +86,21 @@ const handleStartParam = (setCurrentPage, setStartAppParams) => {
         
         if (testStartParam.startsWith('poll_')) {
           pollId = testStartParam.replace('poll_', '');
+        }
+        // Check for gift polls in test mode
+        else if (testStartParam.startsWith('gift_')) {
+          const giftId = testStartParam.replace('gift_', '');
+          console.log('🎁 Test mode: Gift poll deep link detected:', giftId);
+
+          setStartAppParams({
+            source: source,
+            start_param: testStartParam,
+            giftId: giftId,
+            user: user
+          });
+
+          setCurrentPage('gift-poll-receiver');
+          return true;
         }
       }
     }
@@ -120,6 +151,7 @@ import './components/PollAdministration.css';
 import './components/PollResults.css';
 import './components/BottomNavigation.css';
 import './components/WalletMenu.css';
+import './components/GiftPollReceiver.css';
 
 function App() {
   const [tonConnectUI] = useTonConnectUI();
@@ -519,6 +551,19 @@ function App() {
       
       {currentPage === 'telegram-ui-poll-creation' && isConnected && (
         <TelegramUIPollCreation onPollCreate={handlePollCreate} onBack={handleBottomNavigation} />
+      )}
+
+      {currentPage === 'gift-poll-receiver' && startAppParams?.giftId && (
+        <GiftPollReceiver
+          giftId={startAppParams.giftId}
+          onBack={() => {
+            if (isConnected) {
+              setCurrentPage('main');
+            } else {
+              setCurrentPage('getting-started');
+            }
+          }}
+        />
       )}
       
       {isConnected && !['onboarding', 'getting-started-wallet', 'animation-mode-selection', 'welcome', 'start-app'].includes(currentPage) && (

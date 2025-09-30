@@ -23,6 +23,7 @@ import WalletMenu from './WalletMenu';
 import { getActiveContract, getActiveConfig, USE_SIMPLE_CONTRACT } from '../config/contractConfig';
 import { transformPollDataForSimpleContract, transformPollDataForComplexContract } from '../utils/contractDataTransformer';
 import { trackUserAction } from '../utils/analytics';
+import tpollsApi from '../services/tpollsApi';
 import './PollCreation.css';
 
 // Helper functions for token information
@@ -84,17 +85,23 @@ function PollCreation({ onBack, onPollCreate }) {
     description: '',
     category: '',
     votingPeriod: 24, // hours
-    
+
     // Step 2: Options
     options: ['', ''],
-    
+
     // Step 3: Configuration
     fundingSource: 'self-funded', // 'self-funded' or 'crowdfunded'
     rewardToken: 'ton', // 'ton', 'jetton-custom', 'jetton-usdt', etc.
     rewardAmount: '',
     jettonRewardAmount: '',
     openImmediately: true,
-    rewardDistribution: 'equal-share' // 'equal-share' or 'fixed'
+    rewardDistribution: 'equal-share', // 'equal-share' or 'fixed'
+
+    // Gift Options
+    sendAsGift: false,
+    giftRecipient: '',
+    giftMessage: '',
+    giftTheme: 'default' // 'default', 'birthday', 'celebration', 'question'
   });
   const [isCreating, setIsCreating] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -301,6 +308,63 @@ function PollCreation({ onBack, onPollCreate }) {
     };
   };
 
+  const handleGiftPollCreation = async (pollResult) => {
+    try {
+      setToastMessage('Creating gift poll...');
+      setShowToast(true);
+
+      // Generate unique gift ID
+      const giftId = `gift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create gift URL
+      const baseUrl = window.location.origin;
+      const giftUrl = `${baseUrl}/gift/${giftId}?poll=${pollResult.pollId}`;
+
+      // Store gift metadata
+      const giftData = {
+        recipient: formData.giftRecipient,
+        message: formData.giftMessage,
+        theme: formData.giftTheme,
+        sender: tonConnectUI.account?.address,
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        // Try to store via API first
+        await tpollsApi.storeGiftMetadata(giftId, pollResult.pollId, giftData);
+        console.log('✅ Gift metadata stored via API');
+      } catch (error) {
+        console.warn('⚠️ API storage failed, falling back to localStorage:', error);
+        // Fallback to localStorage if API is not available
+        localStorage.setItem(`gift_${giftId}`, JSON.stringify({
+          giftId,
+          pollId: pollResult.pollId,
+          ...giftData
+        }));
+      }
+
+      // Share via Telegram
+      if (webApp && webApp.openTelegramLink) {
+        const shareText = `🎁 You have received a poll gift!\n\n${formData.giftMessage || 'Someone sent you a special poll to participate in.'}\n\nClick to unwrap: ${giftUrl}`;
+        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(giftUrl)}&text=${encodeURIComponent(shareText)}`;
+        webApp.openTelegramLink(telegramUrl);
+      }
+
+      setToastMessage('Gift poll created and ready to share! 🎁');
+      setTimeout(() => {
+        setShowToast(false);
+        if (onPollCreate) {
+          onPollCreate({ ...pollResult.pollData, isGift: true, giftUrl });
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error creating gift poll:', error);
+      setToastMessage('Gift created, but sharing failed. You can copy the link manually.');
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
   const handleCreate = async () => {
     if (webApp) {
       webApp.HapticFeedback.impactOccurred('light');
@@ -337,16 +401,21 @@ function PollCreation({ onBack, onPollCreate }) {
       console.log(`🔧 Creating poll with ${contractConfig.name} (simplified data)`);
 
       const result = await contractService.createPoll(pollData);
-      
+
       if (result.success) {
-        setToastMessage('Poll created successfully!');
-        setShowToast(true);
-        setTimeout(() => {
-          setShowToast(false);
-          if (onPollCreate) {
-            onPollCreate(result.pollData);
-          }
-        }, 1500); // Reduced time before redirect
+        // If this is a gift poll, handle the gift creation
+        if (formData.sendAsGift) {
+          await handleGiftPollCreation(result);
+        } else {
+          setToastMessage('Poll created successfully!');
+          setShowToast(true);
+          setTimeout(() => {
+            setShowToast(false);
+            if (onPollCreate) {
+              onPollCreate(result.pollData);
+            }
+          }, 1500);
+        }
       }
     } catch (error) {
       console.error('Error creating poll:', error);
@@ -608,6 +677,72 @@ function PollCreation({ onBack, onPollCreate }) {
                     <span>Open poll immediately</span>
                   </label>
                 </div>
+              </>
+            )}
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <Checkbox
+                  checked={formData.sendAsGift}
+                  onChange={(e) => handleInputChange('sendAsGift', e.target.checked)}
+                />
+                <span>🎁 Send this poll as a gift</span>
+              </label>
+            </div>
+
+            {formData.sendAsGift && (
+              <div className="gift-options-section">
+                <div className="form-group">
+                  <label htmlFor="giftRecipient">Recipient (Telegram username)</label>
+                  <Input
+                    type="text"
+                    id="giftRecipient"
+                    value={formData.giftRecipient}
+                    onChange={(e) => handleInputChange('giftRecipient', e.target.value)}
+                    placeholder="@username or contact name"
+                    className="poll-input"
+                  />
+                  <div className="input-note">
+                    Who should receive this poll gift?
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="giftMessage">Personal message</label>
+                  <Textarea
+                    id="giftMessage"
+                    value={formData.giftMessage}
+                    onChange={(e) => handleInputChange('giftMessage', e.target.value)}
+                    placeholder="Add a personal message with your gift..."
+                    className="poll-input"
+                    rows="3"
+                  />
+                  <div className="input-note">
+                    Optional message to include with the gift
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Gift theme</label>
+                  <Select
+                    value={formData.giftTheme}
+                    onChange={(value) => handleInputChange('giftTheme', value)}
+                    className="poll-select"
+                  >
+                    <option value="default">🎁 Default Gift</option>
+                    <option value="birthday">🎂 Birthday</option>
+                    <option value="celebration">🎉 Celebration</option>
+                    <option value="question">❓ Question Time</option>
+                  </Select>
+                  <div className="input-note">
+                    Choose a theme for your gift presentation
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!formData.sendAsGift && formData.fundingSource === 'self-funded' && (
+              <>
               </>
             )}
 

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gift Polls Test - tPolls</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #FFD700;
+        }
+        .test-links {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .test-link {
+            display: block;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .test-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .test-link strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        .test-link small {
+            opacity: 0.8;
+        }
+        .how-to {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        .how-to h3 {
+            color: #90EE90;
+            margin-top: 0;
+        }
+        .steps {
+            margin-left: 20px;
+        }
+        .steps li {
+            margin-bottom: 8px;
+        }
+        .copy-btn {
+            background: #FFD700;
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-left: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .copy-btn:hover {
+            background: #FFA500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎁 Gift Polls Test Page</h1>
+            <p>Test the new gift poll functionality for tPolls miniapp</p>
+        </div>
+
+        <div class="test-section how-to">
+            <h3>🧪 How to Test Gift Polls</h3>
+            <ol class="steps">
+                <li><strong>Create a Gift Poll:</strong> Go to Poll Creation → Enable "Send this poll as a gift" → Fill recipient details</li>
+                <li><strong>Test Gift Links:</strong> Use the test links below to simulate receiving a gift poll</li>
+                <li><strong>Unwrap Experience:</strong> Click on gift links to test the unwrapping animation and poll display</li>
+                <li><strong>Telegram Integration:</strong> Share the generated links via Telegram to test real-world scenarios</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Direct Gift Poll Tests</h2>
+            <p>These links simulate receiving different types of gift polls:</p>
+
+            <div class="test-links">
+                <a href="/?startapp=gift_test123" class="test-link" target="_blank">
+                    <strong>🎁 Default Gift Theme</strong>
+                    <small>Basic gift poll with default styling and theme</small>
+                    <button class="copy-btn" onclick="copyToClipboard('/?startapp=gift_test123')">Copy Link</button>
+                </a>
+
+                <a href="/?startapp=gift_birthday456" class="test-link" target="_blank">
+                    <strong>🎂 Birthday Gift Theme</strong>
+                    <small>Gift poll with birthday theme and animations</small>
+                    <button class="copy-btn" onclick="copyToClipboard('/?startapp=gift_birthday456')">Copy Link</button>
+                </a>
+
+                <a href="/?startapp=gift_celebration789" class="test-link" target="_blank">
+                    <strong>🎉 Celebration Gift Theme</strong>
+                    <small>Gift poll with celebration theme for special occasions</small>
+                    <button class="copy-btn" onclick="copyToClipboard('/?startapp=gift_celebration789')">Copy Link</button>
+                </a>
+
+                <a href="/?startapp=gift_question101" class="test-link" target="_blank">
+                    <strong>❓ Question Gift Theme</strong>
+                    <small>Gift poll with question theme for surveys</small>
+                    <button class="copy-btn" onclick="copyToClipboard('/?startapp=gift_question101')">Copy Link</button>
+                </a>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔗 Telegram Deep Link Format</h2>
+            <p>For Telegram bot integration, use this format:</p>
+            <code style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; display: block; margin: 8px 0;">
+                https://t.me/your_bot_name/tpolls?startapp=gift_{giftId}
+            </code>
+            <p><small>Replace <code>your_bot_name</code> with your actual Telegram bot username and <code>{giftId}</code> with the generated gift ID.</small></p>
+        </div>
+
+        <div class="test-section">
+            <h2>📱 Test Data</h2>
+            <p>The test gift polls above use pre-populated data. In a real scenario, this data would come from your backend API.</p>
+            <p>Test gift metadata includes:</p>
+            <ul>
+                <li><strong>Gift ID:</strong> test123, birthday456, celebration789, question101</li>
+                <li><strong>Poll ID:</strong> Sample poll (ID: 1)</li>
+                <li><strong>Themes:</strong> Default, Birthday, Celebration, Question</li>
+                <li><strong>Messages:</strong> Various test messages for each theme</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🚀 Next Steps</h2>
+            <ul>
+                <li>Test the poll creation flow with gift options enabled</li>
+                <li>Verify Telegram sharing integration works correctly</li>
+                <li>Test the unwrapping animations and user experience</li>
+                <li>Ensure proper error handling for expired or invalid gifts</li>
+                <li>Test with actual blockchain poll creation and metadata storage</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Populate test data for gift polls
+        const testGiftData = {
+            'test123': {
+                giftId: 'test123',
+                pollId: 1,
+                recipient: '@testuser',
+                message: 'Hey! I created this poll just for you. Let me know what you think!',
+                theme: 'default',
+                sender: 'EQTestSenderAddress123',
+                createdAt: new Date().toISOString()
+            },
+            'birthday456': {
+                giftId: 'birthday456',
+                pollId: 1,
+                recipient: '@birthdayuser',
+                message: 'Happy Birthday! 🎂 Here\'s a special poll to celebrate your day!',
+                theme: 'birthday',
+                sender: 'EQTestSenderAddress456',
+                createdAt: new Date().toISOString()
+            },
+            'celebration789': {
+                giftId: 'celebration789',
+                pollId: 1,
+                recipient: '@celebrationuser',
+                message: 'Congratulations on your achievement! 🎉 Let\'s celebrate with this poll!',
+                theme: 'celebration',
+                sender: 'EQTestSenderAddress789',
+                createdAt: new Date().toISOString()
+            },
+            'question101': {
+                giftId: 'question101',
+                pollId: 1,
+                recipient: '@questionuser',
+                message: 'I have a question for you! This poll will help me understand your perspective.',
+                theme: 'question',
+                sender: 'EQTestSenderAddress101',
+                createdAt: new Date().toISOString()
+            }
+        };
+
+        // Store test data in localStorage for testing
+        Object.keys(testGiftData).forEach(giftId => {
+            localStorage.setItem(`gift_${giftId}`, JSON.stringify(testGiftData[giftId]));
+        });
+
+        function copyToClipboard(text) {
+            const fullUrl = window.location.origin + text;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#90EE90';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#FFD700';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        console.log('🎁 Gift Polls Test Page Loaded');
+        console.log('📝 Test gift data populated in localStorage');
+        console.log('🔗 Use the links above to test gift poll functionality');
+    </script>
+</body>
+</html>
