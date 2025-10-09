@@ -1,0 +1,526 @@
+/* Dual Mode Navigation - Creator & Participant Modes */
+.dual-mode-navigation {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 100;
+  padding: 0 0 env(safe-area-inset-bottom, 0);
+}
+
+.dual-nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Creator mode: toggle button on left, nav items on right */
+.dual-mode-navigation.creator-mode .dual-nav-container {
+  flex-direction: row;
+}
+
+.dual-mode-navigation.creator-mode .mode-toggle-btn {
+  order: 1;
+}
+
+.dual-mode-navigation.creator-mode .nav-items-wrapper {
+  order: 2;
+}
+
+/* Participant mode: nav items on left, toggle button on right */
+.dual-mode-navigation.participant-mode .dual-nav-container {
+  flex-direction: row;
+}
+
+.dual-mode-navigation.participant-mode .nav-items-wrapper {
+  order: 1;
+}
+
+.dual-mode-navigation.participant-mode .mode-toggle-btn {
+  order: 2;
+}
+
+/* Main Navigation Items Container */
+.nav-items-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  background: rgba(28, 28, 30, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 8px 12px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 64px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Individual Navigation Item */
+.dual-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border-radius: 16px;
+  min-width: 64px;
+  color: rgba(255, 255, 255, 0.5);
+  flex: 1;
+  gap: 4px;
+  opacity: 1;
+}
+
+.dual-nav-item:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dual-nav-item.active {
+  color: #007AFF;
+  background: rgba(0, 122, 255, 0.15);
+}
+
+/* Center Create Button (Creator Mode) - Now styled like other items */
+.dual-nav-item.center-item {
+  /* Removed special styling to match other nav items */
+}
+
+.dual-nav-item.center-item:hover {
+  /* Uses default hover styling from .dual-nav-item */
+}
+
+.dual-nav-item.center-item.active {
+  /* Uses default active styling from .dual-nav-item */
+}
+
+/* Navigation Icon */
+.dual-nav-icon {
+  font-size: 22px;
+  line-height: 1;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Navigation Label */
+.dual-nav-label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+/* Mode Toggle Button */
+.mode-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: rgba(28, 28, 30, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 1px 4px rgba(0, 0, 0, 0.2);
+  color: #007AFF;
+  flex-shrink: 0;
+}
+
+.mode-toggle-btn:hover {
+  background: rgba(38, 38, 40, 0.95);
+  transform: scale(1.05);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.mode-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.mode-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  line-height: 1;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animations are now in DualModeNavigation.animations.css */
+
+/* Animation Switcher Floating UI */
+.animation-switcher-float {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+}
+
+.animation-trigger-btn {
+  background: rgba(0, 122, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow:
+    0 4px 16px rgba(0, 122, 255, 0.3),
+    0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.animation-trigger-btn:hover {
+  background: rgba(0, 122, 255, 1);
+  transform: scale(1.05);
+  box-shadow:
+    0 6px 20px rgba(0, 122, 255, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.animation-trigger-btn:active {
+  transform: scale(0.98);
+}
+
+.animation-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 30, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  animation: menuSlideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes menuSlideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.animation-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.animation-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.animation-menu-item.active {
+  background: rgba(0, 122, 255, 0.2);
+  color: #007AFF;
+}
+
+.animation-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.animation-name {
+  flex: 1;
+}
+
+.check-mark {
+  color: #007AFF;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  .animation-menu {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .animation-menu-item {
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  .animation-menu-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: black;
+  }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .animation-switcher-float {
+    bottom: 80px;
+  }
+
+  .animation-trigger-btn {
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+
+  .animation-menu {
+    min-width: 180px;
+  }
+
+  .animation-menu-item {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Stagger animation for navigation items */
+.dual-nav-item:nth-child(1) {
+  transition-delay: 0.05s;
+}
+
+.dual-nav-item:nth-child(2) {
+  transition-delay: 0.1s;
+}
+
+.dual-nav-item:nth-child(3) {
+  transition-delay: 0.15s;
+}
+
+/* Mode-specific styling */
+.dual-mode-navigation.creator-mode .mode-toggle-btn {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.2), rgba(52, 199, 89, 0.2));
+  border: 1px solid rgba(0, 122, 255, 0.3);
+}
+
+.dual-mode-navigation.participant-mode .mode-toggle-btn {
+  background: linear-gradient(135deg, rgba(175, 82, 222, 0.2), rgba(0, 122, 255, 0.2));
+  border: 1px solid rgba(175, 82, 222, 0.3);
+}
+
+/* Animated version styles */
+.dual-mode-navigation.animated {
+  animation: slideUpIn 0.6s ease-out;
+}
+
+@keyframes slideUpIn {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.dual-mode-navigation.animated .dual-nav-item {
+  animation: navItemFadeIn 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+.dual-mode-navigation.animated .dual-nav-item:nth-child(1) { animation-delay: 0.1s; }
+.dual-mode-navigation.animated .dual-nav-item:nth-child(2) { animation-delay: 0.2s; }
+.dual-mode-navigation.animated .dual-nav-item:nth-child(3) { animation-delay: 0.3s; }
+.dual-mode-navigation.animated .dual-nav-item:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes navItemFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Light mode support */
+@media (prefers-color-scheme: light) {
+  .nav-items-wrapper {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .dual-nav-item {
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  .dual-nav-item:hover {
+    color: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .dual-nav-item.active {
+    color: #007AFF;
+    background: rgba(0, 122, 255, 0.1);
+  }
+
+  .mode-toggle-btn {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.12),
+      0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .mode-toggle-btn:hover {
+    background: rgba(245, 245, 247, 0.95);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .dual-nav-container {
+    gap: 8px;
+  }
+
+  .nav-items-wrapper {
+    padding: 6px 8px;
+    height: 60px;
+  }
+
+  .dual-nav-item {
+    padding: 6px 12px;
+    min-width: 56px;
+  }
+
+  .dual-nav-icon {
+    font-size: 20px;
+  }
+
+  .dual-nav-label {
+    font-size: 10px;
+  }
+
+  .mode-toggle-btn {
+    width: 52px;
+    height: 52px;
+  }
+
+  .mode-toggle-icon {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 360px) {
+  .dual-nav-container {
+    gap: 6px;
+  }
+
+  .nav-items-wrapper {
+    padding: 4px 6px;
+    height: 56px;
+  }
+
+  .dual-nav-item {
+    padding: 4px 8px;
+    min-width: 48px;
+  }
+
+  .dual-nav-icon {
+    font-size: 18px;
+  }
+
+  .dual-nav-label {
+    font-size: 9px;
+  }
+
+  .mode-toggle-btn {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* Handle safe area for devices with home indicator */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .dual-mode-navigation {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .dual-mode-navigation.animated,
+  .dual-nav-item,
+  .dual-nav-icon,
+  .dual-nav-label,
+  .mode-toggle-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .dual-nav-item:hover,
+  .mode-toggle-btn:hover {
+    transform: none !important;
+  }
+}
+
+/* Focus states for keyboard navigation */
+.dual-nav-item:focus,
+.mode-toggle-btn:focus {
+  outline: 2px solid #007aff;
+  outline-offset: 2px;
+}
+
+.dual-nav-item:focus-visible,
+.mode-toggle-btn:focus-visible {
+  outline: 2px solid #007aff;
+  outline-offset: 2px;
+}
+
+/* Hide focus outline on mouse interaction */
+.dual-nav-item:focus:not(:focus-visible),
+.mode-toggle-btn:focus:not(:focus-visible) {
+  outline: none;
+}

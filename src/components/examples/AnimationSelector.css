@@ -1,0 +1,173 @@
+.animation-selector {
+  min-height: 100vh;
+  background: var(--tg-theme-bg-color, #000);
+  padding: 20px 20px 120px;
+  color: var(--tg-theme-text-color, #fff);
+}
+
+.selector-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.selector-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  text-align: center;
+  background: linear-gradient(135deg, #007AFF, #34C759);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.selector-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+}
+
+.animation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.animation-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.animation-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 122, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 122, 255, 0.2);
+}
+
+.animation-card.selected {
+  background: rgba(0, 122, 255, 0.15);
+  border-color: #007AFF;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+}
+
+.animation-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.animation-label {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--tg-theme-text-color, #fff);
+}
+
+.selected-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #007AFF;
+  background: rgba(0, 122, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.animation-description {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.current-selection {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(52, 199, 89, 0.1));
+  border: 1px solid rgba(0, 122, 255, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.selection-indicator {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.selection-indicator strong {
+  color: #007AFF;
+  font-weight: 600;
+}
+
+.selection-hint {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+/* Light mode support */
+@media (prefers-color-scheme: light) {
+  .animation-selector {
+    background: var(--tg-theme-bg-color, #fff);
+    color: var(--tg-theme-text-color, #000);
+  }
+
+  .selector-subtitle {
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  .animation-card {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .animation-card:hover {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 122, 255, 0.5);
+  }
+
+  .animation-card.selected {
+    background: rgba(0, 122, 255, 0.1);
+  }
+
+  .animation-description {
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  .current-selection {
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.05), rgba(52, 199, 89, 0.05));
+    border-color: rgba(0, 122, 255, 0.3);
+  }
+
+  .selection-indicator {
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  .selection-hint {
+    color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .animation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .selector-title {
+    font-size: 24px;
+  }
+
+  .selector-subtitle {
+    font-size: 14px;
+  }
+}
