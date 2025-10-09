@@ -741,7 +741,7 @@
   gap: 12px;
   padding: 12px 16px;
   border: 2px solid var(--tg-theme-hint-color, #e0e0e0);
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   background: var(--tg-theme-bg-color, #ffffff);
@@ -750,9 +750,31 @@
 .radio-option:hover {
   border-color: var(--tg-theme-button-color, #007aff);
   background: var(--tg-theme-secondary-bg-color, #f8fafe);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.15);
+}
+
+.radio-option:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* When radio is checked, highlight the entire option */
+.radio-option:has(input[type="radio"]:checked),
+.radio-option:has([role="radio"][aria-checked="true"]) {
+  border-color: var(--tg-theme-button-color, #007aff);
+  background: rgba(0, 122, 255, 0.05);
+  box-shadow: 0 0 0 1px rgba(0, 122, 255, 0.1);
 }
 
 .radio-option input[type="radio"] {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Style Telegram UI Radio component within radio-option */
+.radio-option [role="radio"] {
+  flex-shrink: 0;
   margin: 0;
 }
 
@@ -760,6 +782,9 @@
   font-size: 16px;
   color: var(--tg-theme-text-color, #000);
   font-weight: 500;
+  line-height: 1.4;
+  flex: 1;
+  white-space: nowrap;
 }
 
 .checkbox-label {

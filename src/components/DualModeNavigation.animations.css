@@ -1,0 +1,335 @@
+/*
+ * Multiple Animation Styles for DualModeNavigation
+ * Switch between animations by changing the data-animation attribute
+ */
+
+/* ========================================
+   ANIMATION 1: DRAWER (Current)
+   Slides from off-screen like a drawer
+   ======================================== */
+
+@keyframes drawer-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%) scaleX(0.3);
+    transform-origin: left center;
+  }
+  60% {
+    opacity: 0.8;
+    transform: translateX(0) scaleX(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+@keyframes drawer-right {
+  0% {
+    opacity: 0;
+    transform: translateX(100%) scaleX(0.3);
+    transform-origin: right center;
+  }
+  60% {
+    opacity: 0.8;
+    transform: translateX(0) scaleX(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+.dual-mode-navigation[data-animation="drawer"].creator-mode .nav-items-wrapper {
+  animation: drawer-left 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="drawer"].creator-mode .mode-toggle-btn {
+  animation: drawer-right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="drawer"].participant-mode .nav-items-wrapper {
+  animation: drawer-right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="drawer"].participant-mode .mode-toggle-btn {
+  animation: drawer-left 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ========================================
+   ANIMATION 2: SMOOTH FADE & SLIDE
+   Gentle slide with fade
+   ======================================== */
+
+@keyframes smooth-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes smooth-right {
+  0% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.dual-mode-navigation[data-animation="smooth"].creator-mode .nav-items-wrapper {
+  animation: smooth-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dual-mode-navigation[data-animation="smooth"].creator-mode .mode-toggle-btn {
+  animation: smooth-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dual-mode-navigation[data-animation="smooth"].participant-mode .nav-items-wrapper {
+  animation: smooth-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dual-mode-navigation[data-animation="smooth"].participant-mode .mode-toggle-btn {
+  animation: smooth-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   ANIMATION 3: SCALE & FADE
+   Grows from center with fade
+   ======================================== */
+
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dual-mode-navigation[data-animation="scale"] .nav-items-wrapper,
+.dual-mode-navigation[data-animation="scale"] .mode-toggle-btn {
+  animation: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ========================================
+   ANIMATION 4: FLIP
+   3D flip rotation
+   ======================================== */
+
+@keyframes flip-left {
+  0% {
+    opacity: 0;
+    transform: perspective(1000px) rotateY(-90deg);
+    transform-origin: left center;
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1000px) rotateY(0deg);
+  }
+}
+
+@keyframes flip-right {
+  0% {
+    opacity: 0;
+    transform: perspective(1000px) rotateY(90deg);
+    transform-origin: right center;
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1000px) rotateY(0deg);
+  }
+}
+
+.dual-mode-navigation[data-animation="flip"].creator-mode .nav-items-wrapper {
+  animation: flip-left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dual-mode-navigation[data-animation="flip"].creator-mode .mode-toggle-btn {
+  animation: flip-right 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dual-mode-navigation[data-animation="flip"].participant-mode .nav-items-wrapper {
+  animation: flip-right 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dual-mode-navigation[data-animation="flip"].participant-mode .mode-toggle-btn {
+  animation: flip-left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   ANIMATION 5: BOUNCE
+   Bouncy spring animation
+   ======================================== */
+
+@keyframes bounce-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-50px) scaleX(0.5);
+  }
+  50% {
+    transform: translateX(10px) scaleX(1.1);
+  }
+  70% {
+    transform: translateX(-5px) scaleX(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+@keyframes bounce-right {
+  0% {
+    opacity: 0;
+    transform: translateX(50px) scaleX(0.5);
+  }
+  50% {
+    transform: translateX(-10px) scaleX(1.1);
+  }
+  70% {
+    transform: translateX(5px) scaleX(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+.dual-mode-navigation[data-animation="bounce"].creator-mode .nav-items-wrapper {
+  animation: bounce-left 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="bounce"].creator-mode .mode-toggle-btn {
+  animation: bounce-right 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="bounce"].participant-mode .nav-items-wrapper {
+  animation: bounce-right 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="bounce"].participant-mode .mode-toggle-btn {
+  animation: bounce-left 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ========================================
+   ANIMATION 6: SLIDE & COMPRESS
+   Slides with horizontal compression
+   ======================================== */
+
+@keyframes compress-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-40px) scaleX(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+@keyframes compress-right {
+  0% {
+    opacity: 0;
+    transform: translateX(40px) scaleX(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+.dual-mode-navigation[data-animation="compress"].creator-mode .nav-items-wrapper {
+  animation: compress-left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dual-mode-navigation[data-animation="compress"].creator-mode .mode-toggle-btn {
+  animation: compress-right 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dual-mode-navigation[data-animation="compress"].participant-mode .nav-items-wrapper {
+  animation: compress-right 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dual-mode-navigation[data-animation="compress"].participant-mode .mode-toggle-btn {
+  animation: compress-left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ========================================
+   ANIMATION 7: ELASTIC
+   Elastic rubber-band effect
+   ======================================== */
+
+@keyframes elastic-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-80px) scaleX(0.4);
+  }
+  40% {
+    opacity: 0.5;
+    transform: translateX(15px) scaleX(1.15);
+  }
+  65% {
+    transform: translateX(-8px) scaleX(0.92);
+  }
+  82% {
+    transform: translateX(4px) scaleX(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+@keyframes elastic-right {
+  0% {
+    opacity: 0;
+    transform: translateX(80px) scaleX(0.4);
+  }
+  40% {
+    opacity: 0.5;
+    transform: translateX(-15px) scaleX(1.15);
+  }
+  65% {
+    transform: translateX(8px) scaleX(0.92);
+  }
+  82% {
+    transform: translateX(-4px) scaleX(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+.dual-mode-navigation[data-animation="elastic"].creator-mode .nav-items-wrapper {
+  animation: elastic-left 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="elastic"].creator-mode .mode-toggle-btn {
+  animation: elastic-right 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="elastic"].participant-mode .nav-items-wrapper {
+  animation: elastic-right 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.dual-mode-navigation[data-animation="elastic"].participant-mode .mode-toggle-btn {
+  animation: elastic-left 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}

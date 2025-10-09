@@ -16,7 +16,7 @@ import UserSettings from './components/UserSettings';
 import PollFunding from './components/PollFunding';
 import PollAdministration from './components/PollAdministration';
 import PollResults from './components/PollResults';
-import BottomNavigation from './components/BottomNavigation';
+import DualModeNavigation from './components/DualModeNavigation';
 import TelegramUIExamples from './components/examples/TelegramUIExamples';
 import TelegramUIPollCreation from './components/TelegramUIPollCreation';
 import StartAppPage from './components/StartAppPage';
@@ -149,7 +149,7 @@ import './components/UserSettings.css';
 import './components/PollFunding.css';
 import './components/PollAdministration.css';
 import './components/PollResults.css';
-import './components/BottomNavigation.css';
+import './components/DualModeNavigation.css';
 import './components/WalletMenu.css';
 import './components/GiftPollReceiver.css';
 
@@ -567,9 +567,12 @@ function App() {
       )}
       
       {isConnected && !['onboarding', 'getting-started-wallet', 'animation-mode-selection', 'welcome', 'start-app'].includes(currentPage) && (
-        <BottomNavigation 
-          currentPage={currentPage} 
-          onNavigate={handleBottomNavigation} 
+        <DualModeNavigation
+          currentPage={currentPage}
+          onNavigate={handleBottomNavigation}
+          initialMode="participant"
+          animationStyle="smooth"
+          showAnimationSwitcher={false}
         />
       )}
     </div>
