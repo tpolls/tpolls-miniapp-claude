@@ -78,18 +78,35 @@ class TPollsContractSimple {
    * @returns {Promise<Object>} Poll creation result
    */
   async createPoll(pollData) {
+    console.log('🔵 createPoll called with data:', pollData);
+
     try {
       // Validate required data
       if (!pollData.options || !Array.isArray(pollData.options) || pollData.options.length < 2) {
         throw new Error('Poll must have at least 2 options');
       }
-      
+
       // Create poll transaction for blockchain
       const pollSubject = pollData.subject || pollData.title || 'New Poll';
       const pollOptions = pollData.options;
+
+      console.log('🔵 Creating poll transaction...');
+      console.log('  - Subject:', pollSubject);
+      console.log('  - Options:', pollOptions);
+      console.log('  - Reward per vote:', pollData.rewardPerVote);
+      console.log('  - Jetton wallet:', pollData.jettonRewardWallet);
+      console.log('  - Jetton reward per vote:', pollData.jettonRewardPerVote);
+
       const transactionData = await this._createPollTransaction(pollOptions, pollData.createdBy, pollSubject, pollData);
-      
+
+      console.log('🔵 Transaction data prepared:');
+      console.log('  - Contract address:', transactionData.contractAddress);
+      console.log('  - Amount:', transactionData.amount);
+      console.log('  - Predicted poll ID:', transactionData.predictedPollId || 'unknown');
+      console.log('  - Payload length:', transactionData.payload.length);
+
       // Send transaction to blockchain
+      console.log('🔵 Sending transaction to blockchain...');
       const result = await this.tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
@@ -100,28 +117,136 @@ class TPollsContractSimple {
           }
         ]
       });
-      
-      // Wait and verify poll creation
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
-      
-      const verification = await this.verifyPollCreation(transactionData.nextPollId);
-      
+
+      console.log('✅ Transaction sent successfully!');
+      console.log('  - BOC:', result.boc);
+
+      // Wait for transaction to be processed
+      console.log('🔵 Waiting 8 seconds for transaction to be processed...');
+      await new Promise(resolve => setTimeout(resolve, 8000)); // Wait 8 seconds for blockchain
+
+      // Check transaction status on blockchain
+      console.log('🔵 Checking transaction status on blockchain...');
+      let txStatus = null;
+      try {
+        // Extract transaction hash from BOC if possible
+        // For now, we'll check recent transactions
+        const recentTxs = await this.client.getTransactions(Address.parse(this.contractAddress), {
+          limit: 5
+        });
+
+        if (recentTxs.length > 0) {
+          const latestTx = recentTxs[0];
+          const exitCode = latestTx.description.computePhase?.exitCode;
+          const aborted = latestTx.description.aborted;
+          const exitCodeDescription = this._decodeExitCode(exitCode || 0);
+
+          txStatus = {
+            exitCode,
+            exitCodeDescription,
+            aborted,
+            success: !aborted && exitCode === 0
+          };
+
+          console.log('  - Latest transaction status:');
+          console.log('    - Exit code:', exitCode);
+          console.log('    - Description:', exitCodeDescription);
+          console.log('    - Aborted:', aborted);
+          console.log('    - Success:', txStatus.success);
+
+          if (!txStatus.success) {
+            console.error('  ❌ Transaction failed on blockchain!');
+            console.error('  - Reason:', exitCodeDescription);
+          }
+        }
+      } catch (statusError) {
+        console.warn('  ⚠️ Could not check transaction status:', statusError.message);
+      }
+
+      // Get the actual poll ID by polling until the count updates
+      console.log('🔵 Getting actual poll ID from contract...');
+      let actualPollId = transactionData.predictedPollId;
+
+      // Poll up to 5 times (15 more seconds) for the poll count to update
+      const contractAddress = Address.parse(this.contractAddress);
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      while (attempts < maxAttempts) {
+        try {
+          const result = await this.client.runMethod(contractAddress, 'get_poll_count');
+          if (result.stack && result.stack.items.length > 0) {
+            const currentCount = Number(result.stack.items[0].value);
+            console.log(`  - Poll count check (attempt ${attempts + 1}/${maxAttempts}): ${currentCount}`);
+
+            // If count increased to our predicted ID or higher, we're good
+            if (currentCount >= transactionData.predictedPollId) {
+              actualPollId = transactionData.predictedPollId;
+              console.log('  ✅ Poll count updated! Actual poll ID:', actualPollId);
+              break;
+            }
+          }
+        } catch (error) {
+          console.warn(`  ⚠️ Attempt ${attempts + 1} failed:`, error.message);
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          console.log('  - Waiting 3 more seconds for state update...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+
+      if (attempts >= maxAttempts) {
+        console.warn('  ⚠️ Could not confirm poll count update, using predicted ID');
+      }
+
+      console.log('🔵 Verifying poll creation...');
+      const verification = await this.verifyPollCreation(actualPollId);
+
+      console.log('✅ Poll creation result:');
+      console.log('  - Verified:', verification.success);
+      console.log('  - Message:', verification.message);
+
+      // Include transaction status in response
+      if (txStatus && !txStatus.success) {
+        console.error('  ❌ WARNING: Transaction may have failed!');
+        console.error('  - Exit code:', txStatus.exitCode);
+        console.error('  - Reason:', txStatus.exitCodeDescription);
+      }
+
       return {
         success: true,
-        pollId: transactionData.nextPollId,
+        pollId: actualPollId,
         transactionHash: result.boc,
         aiGenerated: false,
         verified: verification.success,
         verificationMessage: verification.message,
         pollData: verification.pollData,
         metadataStored: false,
-        message: verification.success 
-          ? `Poll ${transactionData.nextPollId} created and verified on blockchain`
-          : `Poll ${transactionData.nextPollId} transaction sent (verification: ${verification.message})`
+        message: verification.success
+          ? `Poll ${actualPollId} created and verified on blockchain`
+          : `Poll ${actualPollId} transaction sent (verification: ${verification.message})`
       };
-      
+
     } catch (error) {
-      console.error('Error creating poll:', error);
+      console.error('❌ ERROR in createPoll:');
+      console.error('  - Error name:', error.name);
+      console.error('  - Error message:', error.message);
+      console.error('  - Error stack:', error.stack);
+      console.error('  - Full error object:', error);
+
+      // Log additional error details if available
+      if (error.response) {
+        console.error('  - Error response:', error.response);
+      }
+      if (error.code) {
+        console.error('  - Error code:', error.code);
+      }
+      if (error.data) {
+        console.error('  - Error data:', error.data);
+      }
+
       throw new Error(`Failed to create poll: ${error.message}`);
     }
   }
@@ -131,6 +256,8 @@ class TPollsContractSimple {
    * Create poll transaction directly with blockchain
    */
   async _createPollTransaction(pollOptions, createdBy, pollSubject = '', pollData = {}) {
+    console.log('🔵 _createPollTransaction called');
+
     if (!this.client) {
       throw new Error('TON client not available for direct blockchain interaction');
     }
@@ -140,102 +267,129 @@ class TPollsContractSimple {
       if (!Array.isArray(pollOptions) || pollOptions.length < 2 || pollOptions.length > 10) {
         throw new Error('Poll must have 2-10 options');
       }
-      
+
       // Validate that all options have content
       const validOptions = pollOptions.filter(opt => opt && opt.trim().length > 0);
       if (validOptions.length < 2) {
         throw new Error('Poll must have at least 2 non-empty options');
       }
 
+      console.log('  - Valid options count:', validOptions.length);
+
       // Check if contract is deployed and active
       try {
         const contractAddress = Address.parse(this.contractAddress);
         const contractState = await this.client.getContractState(contractAddress);
+        console.log('  - Contract state:', contractState.state);
         if (contractState.state !== 'active') {
-          // Contract state not active, proceeding anyway
+          console.warn('  ⚠️ Contract state not active, proceeding anyway');
         }
       } catch (stateError) {
-        // Could not check contract state
+        console.warn('  ⚠️ Could not check contract state:', stateError.message);
       }
 
-      // Generate poll ID - use timestamp to avoid conflicts since contract may not have getNextPollId method
-      let nextPollId;
-      
+      // Get current poll count to predict next poll ID
+      // The contract auto-generates poll IDs by incrementing poll_count
+      let predictedPollId = null;
+
       try {
-        // Try to get next poll ID from contract if the method exists
         const contractAddress = Address.parse(this.contractAddress);
-        const result = await this.client.runMethod(contractAddress, 'getNextPollId');
+        const result = await this.client.runMethod(contractAddress, 'get_poll_count');
         if (result.stack && result.stack.items.length > 0) {
-          nextPollId = Number(result.stack.items[0].value);
-          // Retrieved next poll ID from contract
-        } else {
-          throw new Error('No poll ID returned from contract');
+          const currentCount = Number(result.stack.items[0].value);
+          predictedPollId = currentCount + 1;
+          console.log('  - Current poll count:', currentCount);
+          console.log('  - Predicted next poll ID:', predictedPollId);
         }
       } catch (error) {
-        // Contract method doesn't exist or failed - use timestamp-based ID
-        nextPollId = Math.floor(Date.now() / 1000);
-        // Contract getNextPollId method not available, using timestamp-based ID
-        
-        // Try alternative method names that might exist
-        try {
-          const contractAddress = Address.parse(this.contractAddress);
-          const totalPolls = await this.client.runMethod(contractAddress, 'getPollCount');
-          if (totalPolls.stack && totalPolls.stack.items.length > 0) {
-            nextPollId = Number(totalPolls.stack.items[0].value) + 1;
-            // Retrieved next poll ID from getPollCount
-          }
-        } catch (totalError) {
-          // getPollCount method also not available, sticking with timestamp ID
-        }
+        console.log('  - Could not get poll count, will retrieve actual ID after creation:', error.message);
       }
 
       // Create options dictionary with Cell values (matching updated contract)
-      const optionsDict = Dictionary.empty(Dictionary.Keys.Int(257), Dictionary.Values.Cell());
+      console.log('  - Creating options dictionary...');
+
+      // IMPORTANT: The contract expects map<int, cell> with Uint(32) keys (verified from test scripts)
+      // Using Uint(32) to match the contract's test implementation
+      const optionsDict = Dictionary.empty(
+        Dictionary.Keys.Uint(32),
+        Dictionary.Values.Cell()
+      );
+
       validOptions.forEach((option, index) => {
         const optionCell = beginCell().storeStringTail(option.trim()).endCell();
+        // Use regular number index with Uint(32) keys
         optionsDict.set(index, optionCell);
+        console.log(`    - Option ${index}: "${option.trim()}"`);
       });
-      
+
+      console.log('    - Dictionary size:', optionsDict.size);
+      console.log('    - Dictionary keys:', Array.from(optionsDict.keys()));
+
       // Extract reward configuration from pollData
       const rewardPerVote = pollData.rewardPerVote || 0;
       const jettonRewardWallet = pollData.jettonRewardWallet;
       const jettonRewardPerVote = pollData.jettonRewardPerVote || 0;
 
+      console.log('  - Reward configuration:');
+      console.log('    - TON reward per vote:', rewardPerVote);
+      console.log('    - Jetton wallet:', jettonRewardWallet || 'none');
+      console.log('    - Jetton reward per vote:', jettonRewardPerVote);
+
       // Build CreatePoll message payload with all new fields
+      console.log('  - Building message payload...');
       let messageBuilder = beginCell()
-        .storeUint(1052480048, 32) // CreatePoll operation code for deployed contract
+        .storeUint(0x6B6F6C74, 32) // CreatePoll operation code "kolt" (matches contract)
         .storeStringRefTail(pollSubject || '') // Store poll subject as string
         .storeDict(optionsDict) // Store options dictionary
-        .storeUint(Math.floor(rewardPerVote * 1000000000), 257); // TON reward per vote in nanotons
+        .storeCoins(Math.floor(rewardPerVote * 1000000000)); // TON reward per vote in nanotons (use storeCoins not storeUint!)
 
-      // Store jetton reward wallet address (nullable)
+      console.log('    - Opcode: 0x6B6F6C74 (kolt)');
+      console.log('    - Subject stored:', pollSubject || '(empty)');
+      console.log('    - Options dict stored');
+      console.log('    - TON reward stored (coins):', Math.floor(rewardPerVote * 1000000000));
+
+      // Store has_jetton flag and jetton wallet address
       if (jettonRewardWallet) {
         try {
           const jettonAddress = Address.parse(jettonRewardWallet);
-          messageBuilder = messageBuilder.storeBit(1).storeAddress(jettonAddress);
+          messageBuilder = messageBuilder
+            .storeUint(1, 1) // has_jetton? = true
+            .storeAddress(jettonAddress);
+          console.log('    - Has jetton: true');
+          console.log('    - Jetton wallet stored:', jettonRewardWallet);
         } catch (error) {
-          console.warn('Invalid jetton wallet address, storing null:', error);
-          messageBuilder = messageBuilder.storeBit(0);
+          console.warn('    ⚠️ Invalid jetton wallet address, storing null:', error);
+          messageBuilder = messageBuilder
+            .storeUint(0, 1) // has_jetton? = false
+            .storeAddress(null);
         }
       } else {
-        messageBuilder = messageBuilder.storeBit(0); // null address
+        messageBuilder = messageBuilder
+          .storeUint(0, 1) // has_jetton? = false
+          .storeAddress(null);
+        console.log('    - Has jetton: false');
+        console.log('    - No jetton wallet (null)');
       }
 
-      // Store jetton reward per vote
-      messageBuilder = messageBuilder.storeUint(Math.floor(jettonRewardPerVote * 1000000000), 257);
+      // Store jetton reward per vote (use storeCoins not storeUint!)
+      messageBuilder = messageBuilder.storeCoins(Math.floor(jettonRewardPerVote * 1000000000));
+      console.log('    - Jetton reward stored (coins):', Math.floor(jettonRewardPerVote * 1000000000));
 
       const messageBody = messageBuilder.endCell();
-
       const payload = messageBody.toBoc().toString('base64');
 
+      console.log('  ✅ Message payload built successfully');
+      console.log('  - Payload length:', payload.length, 'bytes');
+
       return {
-        nextPollId,
+        predictedPollId, // May be null if we couldn't get poll count
         contractAddress: this.contractAddress,
         amount: toNano('0.05').toString(), // 0.05 TON for gas
         payload
       };
     } catch (error) {
-      console.error('Error creating poll transaction:', error);
+      console.error('❌ Error in _createPollTransaction:', error);
+      console.error('  - Stack:', error.stack);
       throw new Error(`Failed to create poll transaction: ${error.message}`);
     }
   }
@@ -383,14 +537,14 @@ class TPollsContractSimple {
           const optionsCell = optionsResult.stack.readCellOpt();
           if (optionsCell) {
             const optionsDict = Dictionary.loadDirect(
-              Dictionary.Keys.BigInt(257), 
-              Dictionary.Values.Cell(), 
+              Dictionary.Keys.Uint(32),
+              Dictionary.Values.Cell(),
               optionsCell
             );
-            
+
             pollOptions = [];
             for (let i = 0; i < optionsDict.size; i++) {
-              const optionCell = optionsDict.get(BigInt(i));
+              const optionCell = optionsDict.get(i);
               if (optionCell) {
                 const optionText = optionCell.beginParse().loadStringTail();
                 pollOptions.push(optionText);
@@ -893,11 +1047,53 @@ class TPollsContractSimple {
   }
 
   /**
+   * Decode common TON exit codes
+   * @private
+   */
+  _decodeExitCode(exitCode) {
+    const exitCodes = {
+      0: 'Success',
+      1: 'Alternative success',
+      2: 'Stack underflow',
+      3: 'Stack overflow',
+      4: 'Integer overflow',
+      5: 'Integer out of expected range',
+      6: 'Invalid opcode',
+      7: 'Type check error',
+      8: 'Cell overflow',
+      9: 'Cell underflow',
+      10: 'Dictionary error',
+      11: 'Unknown error',
+      12: 'Fatal error',
+      13: 'Out of gas',
+      32: 'Action list invalid',
+      33: 'Action invalid or not supported',
+      34: 'Invalid source address',
+      35: 'Invalid destination address',
+      36: 'Not enough TON',
+      37: 'Not enough extra currencies',
+      38: 'Not enough funds to process message',
+      40: 'Not enough funds to send message',
+      43: 'Library reference not found',
+      50: 'Account state size exceeded',
+      // Custom contract codes
+      100: 'Contract requirement failed',
+      101: 'Invalid operation',
+      102: 'Access denied',
+      103: 'Data validation failed'
+    };
+
+    return exitCodes[exitCode] || `Unknown exit code: ${exitCode}`;
+  }
+
+  /**
    * Check if a transaction was successful by hash
    * @param {string} txHash - Transaction hash
    * @returns {Promise<Object>} Transaction status
    */
   async checkTransactionStatus(txHash) {
+    console.log('🔍 Checking transaction status for hash:', txHash);
+
     if (!this.client) {
       throw new Error('TON client not available');
     }
@@ -908,25 +1104,49 @@ class TPollsContractSimple {
         limit: 100
       });
 
+      console.log(`  - Retrieved ${transactions.length} recent transactions`);
+
       // Find the transaction by hash
       const transaction = transactions.find(tx => tx.hash().toString('hex') === txHash);
-      
+
       if (!transaction) {
+        console.warn('  ⚠️ Transaction not found in recent transactions');
         return {
           found: false,
           message: 'Transaction not found'
         };
       }
 
+      const exitCode = transaction.description.computePhase?.exitCode || 0;
+      const exitCodeDescription = this._decodeExitCode(exitCode);
+      const aborted = transaction.description.aborted;
+      const gasUsed = transaction.description.computePhase?.gasUsed || 0;
+
+      console.log('  - Transaction found:');
+      console.log('    - Aborted:', aborted);
+      console.log('    - Exit code:', exitCode);
+      console.log('    - Exit code description:', exitCodeDescription);
+      console.log('    - Gas used:', gasUsed);
+
+      if (aborted) {
+        console.error('  ❌ Transaction was aborted!');
+      } else {
+        console.log('  ✅ Transaction executed successfully');
+      }
+
       return {
         found: true,
-        success: !transaction.description.aborted,
-        exitCode: transaction.description.computePhase?.exitCode || 0,
-        gasUsed: transaction.description.computePhase?.gasUsed || 0,
-        message: transaction.description.aborted ? 'Transaction failed' : 'Transaction successful'
+        success: !aborted && exitCode === 0,
+        exitCode,
+        exitCodeDescription,
+        gasUsed,
+        aborted,
+        message: aborted
+          ? `Transaction failed: ${exitCodeDescription}`
+          : `Transaction successful (exit code ${exitCode}: ${exitCodeDescription})`
       };
     } catch (error) {
-      console.error('Error checking transaction status:', error);
+      console.error('❌ Error checking transaction status:', error);
       return {
         found: false,
         error: error.message
@@ -1042,14 +1262,14 @@ class TPollsContractSimple {
         if (item.items[3]?.type === 'cell' && item.items[3].cell) {
           try {
             const optionsDict = Dictionary.loadDirect(
-              Dictionary.Keys.BigInt(257), 
-              Dictionary.Values.Cell(), 
+              Dictionary.Keys.Uint(32),
+              Dictionary.Values.Cell(),
               item.items[3].cell
             );
-            
+
             // Extract option strings from the dictionary
             for (let i = 0; i < optionsDict.size; i++) {
-              const optionCell = optionsDict.get(BigInt(i));
+              const optionCell = optionsDict.get(i);
               if (optionCell) {
                 const optionText = optionCell.beginParse().loadStringTail();
                 options.push(optionText);
@@ -1089,6 +1309,152 @@ class TPollsContractSimple {
     } catch (error) {
       console.error('Error parsing poll from stack:', error);
       return null;
+    }
+  }
+
+  /**
+   * Fund a poll with TON
+   * @param {number|bigint} pollId - Poll ID to fund
+   * @param {string|bigint} amount - Amount in nanotons or as string
+   * @returns {Promise<Object>} Transaction result
+   */
+  async fundPollWithTON(pollId, amount) {
+    console.log('💰 Funding poll with TON:', { pollId, amount });
+
+    try {
+      if (!this.tonConnectUI) {
+        throw new Error('TonConnect not initialized');
+      }
+
+      // Create fund poll message
+      const fundMessage = beginCell()
+        .storeUint(0x46756e64, 32) // "Fund" opcode
+        .storeUint(BigInt(pollId), 64) // poll_id
+        .storeUint(0, 1) // is_jetton = false (TON)
+        .endCell();
+
+      // Prepare transaction
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: this.contractAddress,
+            amount: typeof amount === 'string' ? amount : amount.toString(),
+            payload: fundMessage.toBoc().toString('base64')
+          }
+        ]
+      };
+
+      console.log('🔵 Sending fund transaction...');
+      const result = await this.tonConnectUI.sendTransaction(transaction);
+
+      console.log('✅ Fund transaction sent:', result);
+      return {
+        success: true,
+        txHash: result.boc,
+        pollId,
+        amount,
+        type: 'TON'
+      };
+    } catch (error) {
+      console.error('❌ Error funding poll with TON:', error);
+      throw new Error(`Failed to fund poll: ${error.message}`);
+    }
+  }
+
+  /**
+   * Claim TON reward after voting
+   * @param {number|bigint} pollId - Poll ID to claim from
+   * @returns {Promise<Object>} Transaction result
+   */
+  async claimTONReward(pollId) {
+    console.log('🎁 Claiming TON reward for poll:', pollId);
+
+    try {
+      if (!this.tonConnectUI) {
+        throw new Error('TonConnect not initialized');
+      }
+
+      // Create claim reward message
+      const claimMessage = beginCell()
+        .storeUint(0x636c6169, 32) // "clai" opcode
+        .storeUint(BigInt(pollId), 64) // poll_id
+        .storeUint(0, 1) // claim_jetton = false (TON)
+        .endCell();
+
+      // Prepare transaction
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: this.contractAddress,
+            amount: toNano('0.05').toString(), // Gas fee
+            payload: claimMessage.toBoc().toString('base64')
+          }
+        ]
+      };
+
+      console.log('🔵 Sending claim transaction...');
+      const result = await this.tonConnectUI.sendTransaction(transaction);
+
+      console.log('✅ Claim transaction sent:', result);
+      return {
+        success: true,
+        txHash: result.boc,
+        pollId,
+        type: 'TON'
+      };
+    } catch (error) {
+      console.error('❌ Error claiming TON reward:', error);
+      throw new Error(`Failed to claim reward: ${error.message}`);
+    }
+  }
+
+  /**
+   * Claim jetton reward after voting
+   * @param {number|bigint} pollId - Poll ID to claim from
+   * @returns {Promise<Object>} Transaction result
+   */
+  async claimJettonReward(pollId) {
+    console.log('🎁 Claiming jetton reward for poll:', pollId);
+
+    try {
+      if (!this.tonConnectUI) {
+        throw new Error('TonConnect not initialized');
+      }
+
+      // Create claim reward message
+      const claimMessage = beginCell()
+        .storeUint(0x636c6169, 32) // "clai" opcode
+        .storeUint(BigInt(pollId), 64) // poll_id
+        .storeUint(1, 1) // claim_jetton = true (jetton)
+        .endCell();
+
+      // Prepare transaction
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: this.contractAddress,
+            amount: toNano('0.05').toString(), // Gas fee
+            payload: claimMessage.toBoc().toString('base64')
+          }
+        ]
+      };
+
+      console.log('🔵 Sending claim jetton transaction...');
+      const result = await this.tonConnectUI.sendTransaction(transaction);
+
+      console.log('✅ Claim jetton transaction sent:', result);
+      return {
+        success: true,
+        txHash: result.boc,
+        pollId,
+        type: 'jetton'
+      };
+    } catch (error) {
+      console.error('❌ Error claiming jetton reward:', error);
+      throw new Error(`Failed to claim jetton reward: ${error.message}`);
     }
   }
 }
